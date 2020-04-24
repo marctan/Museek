@@ -29,34 +29,32 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
-
-import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.util.Util;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
-import static android.view.View.INVISIBLE;
-import static android.view.View.VISIBLE;
+/**
+ * Created by Marc Q. Tan on 17/04/2020.
+ */
 
 public class MainActivity extends AppCompatActivity {
     ListView lv;
     MediaControllerCompat mediaControllerCompat;
     MediaSessionCompat.Token token;
-    Button button3, prev, next;
+    Button prev, next;
     CustomAdapter adapter;
     SeekBar seekBar;
     TextView start, end, title, subtitle;
     Handler handler;
-    Runnable runnable;
+    SeekBarRunnable runnable;
     private PlaybackStateCompat mLastPlaybackState;
     ProgressBar progressBar;
 
     MediaControllerCallback mediaControllerCallback;
+
+    SessionTokenBroadCastReceiver sessionReceiver;
+    UIBroadCastReceiver uiReceiver;
 
     private class MediaControllerCallback extends MediaControllerCompat.Callback {
         @Override
@@ -106,7 +104,7 @@ public class MainActivity extends AppCompatActivity {
                 stopSeekbarUpdate();
                 break;
             case PlaybackStateCompat.STATE_BUFFERING:
-                progressBar.setVisibility(VISIBLE);
+                progressBar.setVisibility(View.VISIBLE);
                 stopSeekbarUpdate();
                 break;
             default:
@@ -115,7 +113,26 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+    private class SeekBarRunnable implements Runnable {
+        @Override
+        public void run() {
+            updateProgress();
+            handler.postDelayed(this, 1000);
+        }
+    }
+
+    private void initSeekBarRunnable(){
+        handler = new Handler();
+        runnable = new SeekBarRunnable();
+    }
+
+    private void initBroadCasters() {
+        sessionReceiver = new SessionTokenBroadCastReceiver();
+        uiReceiver = new UIBroadCastReceiver();
+        LocalBroadcastManager.getInstance(this).registerReceiver(sessionReceiver, new IntentFilter("sessionToken"));
+        LocalBroadcastManager.getInstance(this).registerReceiver(uiReceiver, new IntentFilter("broadcastIndex"));
+    }
+    private class SessionTokenBroadCastReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
             // Get extra data included in the Intent
@@ -135,9 +152,9 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
-    };
+    }
 
-    private BroadcastReceiver mUpdateUIReceiver = new BroadcastReceiver() {
+    private class UIBroadCastReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equals("broadcastIndex")) {
@@ -147,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
-    };
+    }
 
     private void updateProgress() {
         if (mLastPlaybackState == null) {
@@ -197,27 +214,20 @@ public class MainActivity extends AppCompatActivity {
         title = findViewById(R.id.title);
         subtitle = findViewById(R.id.album);
 
-        handler = new Handler();
-        runnable = new Runnable() {
+        initSeekBarRunnable();
+        seekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
             @Override
-            public void run() {
-                updateProgress();
-                handler.postDelayed(this, 1000);
-            }
-        };
-        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+            public void onProgressChanged(android.widget.SeekBar seekBar, int progress, boolean fromUser) {
                 start.setText(DateUtils.formatElapsedTime(progress / 1000));
             }
 
             @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
+            public void onStartTrackingTouch(android.widget.SeekBar seekBar) {
                 stopSeekbarUpdate();
             }
 
             @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
+            public void onStopTrackingTouch(android.widget.SeekBar seekBar) {
                 MediaControllerCompat.getMediaController(MainActivity.this).getTransportControls().seekTo(seekBar.getProgress());
             }
         });
@@ -240,8 +250,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         mediaControllerCallback = new MediaControllerCallback();
-        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver, new IntentFilter("sessionToken"));
-        LocalBroadcastManager.getInstance(this).registerReceiver(mUpdateUIReceiver, new IntentFilter("broadcastIndex"));
+        initBroadCasters();
     }
 
 
@@ -264,8 +273,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         stopSeekbarUpdate();
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(mUpdateUIReceiver);
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(sessionReceiver);
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(uiReceiver);
     }
 
     private class CustomAdapter extends ArrayAdapter<Samples.Sample> {
@@ -345,6 +354,4 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
-
 }
