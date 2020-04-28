@@ -3,6 +3,7 @@ package com.example.marcqtan.samplemusic;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.content.BroadcastReceiver;
@@ -25,6 +26,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
@@ -42,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
     ListView lv;
     MediaControllerCompat mediaControllerCompat;
     MediaSessionCompat.Token token;
-    Button prev, next;
+    ImageView prev, next;
     CustomAdapter adapter;
     SeekBar seekBar;
     TextView start, end, title, subtitle;
@@ -196,7 +198,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.main_music_list);
         Intent i = new Intent(this, MusicService.class);
         Util.startForegroundService(this, i);
         lv = findViewById(R.id.lv);
@@ -211,8 +213,8 @@ public class MainActivity extends AppCompatActivity {
         seekBar = findViewById(R.id.seekbar);
         start = findViewById(R.id.start);
         end = findViewById(R.id.end);
-        title = findViewById(R.id.title);
-        subtitle = findViewById(R.id.album);
+        title = findViewById(R.id.songName);
+        subtitle = findViewById(R.id.singer);
 
         initSeekBarRunnable();
         seekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
@@ -295,26 +297,28 @@ public class MainActivity extends AppCompatActivity {
         public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
             View view = convertView;
             if (view == null) {
-                view = LayoutInflater.from(ctx).inflate(R.layout.song_item, parent, false);
+                view = LayoutInflater.from(ctx).inflate(R.layout.song_list_item, parent, false);
             }
 
             Samples.Sample s = data.get(position);
 
             TextView title = view.findViewById(R.id.title);
+            TextView subtitle = view.findViewById(R.id.subtitle);
             title.setText(s.title);
+            subtitle.setText(s.description);
 
+            ImageView btn = view.findViewById(R.id.play_pause);
+            ConstraintLayout cl = view.findViewById(R.id.song_detail_cl);
 
-            ImageButton btn = view.findViewById(R.id.play_pause);
-
-
-            btn.setImageDrawable(ctx.getDrawable(R.drawable.ic_play_arrow_black_24dp));
+            btn.setImageDrawable(ctx.getDrawable(R.drawable.small_play));
 
             if (selectedIndex == position) {
                 if (state == PlaybackStateCompat.STATE_PLAYING) {
-                    btn.setImageDrawable(ctx.getDrawable(R.drawable.ic_pause_black_24dp));
-                } else {
-                    btn.setImageDrawable(ctx.getDrawable(R.drawable.ic_play_arrow_black_24dp));
+                    cl.setBackground(ctx.getDrawable(R.drawable.timeline));
+                    btn.setImageDrawable(ctx.getDrawable(R.drawable.small_pause));
                 }
+            } else {
+                cl.setBackground(null);
             }
 
             btn.setOnClickListener(new View.OnClickListener() {
