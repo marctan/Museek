@@ -10,6 +10,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
@@ -23,6 +26,7 @@ import android.text.format.DateUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -31,6 +35,7 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
+
 import com.google.android.exoplayer2.util.Util;
 
 import java.util.ArrayList;
@@ -44,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
     ListView lv;
     MediaControllerCompat mediaControllerCompat;
     MediaSessionCompat.Token token;
-    ImageView prev, next;
+    ImageView prev, next, album_artwork;
     CustomAdapter adapter;
     SeekBar seekBar;
     TextView start, end, title, subtitle;
@@ -56,7 +61,6 @@ public class MainActivity extends AppCompatActivity {
     MediaControllerCallback mediaControllerCallback;
 
     SessionTokenBroadCastReceiver sessionReceiver;
-    UIBroadCastReceiver uiReceiver;
 
     private class MediaControllerCallback extends MediaControllerCompat.Callback {
         @Override
@@ -65,30 +69,36 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
-            adapter.updateButtonState(state.getState()); //update ui when clicking play/pause
             updatePlaybackState(state);
         }
 
         @Override
         public void onMetadataChanged(MediaMetadataCompat metadata) {
             super.onMetadataChanged(metadata);
-            updateMediaDescription(metadata.getDescription());
+            updateMediaDescription(metadata);
             updateDuration(metadata);
+            adapter.updateSelectedIndex((int) metadata.getLong("currentMediaIndex"));
         }
     }
 
-    private void updateMediaDescription(MediaDescriptionCompat description) {
+    private void updateMediaDescription(MediaMetadataCompat metadata) {
+        MediaDescriptionCompat description = metadata.getDescription();
         if (description == null) {
             return;
         }
         title.setText(description.getTitle());
         subtitle.setText(description.getSubtitle());
+
+        Bitmap bitmap = metadata.getBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART);
+        album_artwork.setImageBitmap(bitmap);
     }
 
     private void updatePlaybackState(PlaybackStateCompat state) {
         if (state == null) {
             return;
         }
+
+        adapter.updateButtonState(state.getState());
         mLastPlaybackState = state;
 
         switch (state.getState()) {
@@ -123,17 +133,16 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void initSeekBarRunnable(){
+    private void initSeekBarRunnable() {
         handler = new Handler();
         runnable = new SeekBarRunnable();
     }
 
     private void initBroadCasters() {
         sessionReceiver = new SessionTokenBroadCastReceiver();
-        uiReceiver = new UIBroadCastReceiver();
         LocalBroadcastManager.getInstance(this).registerReceiver(sessionReceiver, new IntentFilter("sessionToken"));
-        LocalBroadcastManager.getInstance(this).registerReceiver(uiReceiver, new IntentFilter("broadcastIndex"));
     }
+
     private class SessionTokenBroadCastReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -146,23 +155,11 @@ public class MainActivity extends AppCompatActivity {
                         MediaControllerCompat.setMediaController(MainActivity.this, mediaControllerCompat);
                         updatePlaybackState(mediaControllerCompat.getPlaybackState());
                         updateDuration(mediaControllerCompat.getMetadata());
-                        updateMediaDescription(mediaControllerCompat.getMetadata().getDescription() );
+                        updateMediaDescription(mediaControllerCompat.getMetadata());
                         mediaControllerCompat.registerCallback(mediaControllerCallback);
                     } catch (RemoteException e) {
                         e.printStackTrace();
                     }
-                }
-            }
-        }
-    }
-
-    private class UIBroadCastReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals("broadcastIndex")) {
-                int position = intent.getIntExtra("currentPlayingIndex", -1);
-                if (position >= 0) {
-                    adapter.updateSelectedIndex(position); //update ui when clicking prev/next/after song end
                 }
             }
         }
@@ -199,6 +196,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main_music_list);
+
+        mediaControllerCallback = new MediaControllerCallback();
+        initBroadCasters();
+        initSeekBarRunnable();
+
         Intent i = new Intent(this, MusicService.class);
         Util.startForegroundService(this, i);
         lv = findViewById(R.id.lv);
@@ -215,8 +217,27 @@ public class MainActivity extends AppCompatActivity {
         end = findViewById(R.id.end);
         title = findViewById(R.id.songName);
         subtitle = findViewById(R.id.singer);
+        seekBar.setEnabled(false); //set to true to show
 
-        initSeekBarRunnable();
+        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                MediaControllerCompat controller = MediaControllerCompat.getMediaController(MainActivity.this);
+                MediaDescriptionCompat description = controller.getMetadata().getDescription();
+                String mediaId = Samples.SAMPLES[i].mediaId;
+
+                if (!mediaId.equals(description.getMediaId())) {
+                    controller.getTransportControls().playFromMediaId(mediaId, null);
+                    return;
+                }
+
+                Intent intent = new Intent(MainActivity.this, SongPage.class);
+                intent.putExtra("media_description", description);
+                intent.putExtra("token", token);
+                startActivity(intent);
+            }
+        });
+
         seekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(android.widget.SeekBar seekBar, int progress, boolean fromUser) {
@@ -236,6 +257,18 @@ public class MainActivity extends AppCompatActivity {
 
         prev = findViewById(R.id.prev);
         next = findViewById(R.id.next);
+        album_artwork = findViewById(R.id.album_artwork);
+
+        album_artwork.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(MainActivity.this, SongPage.class);
+                intent.putExtra("media_description",
+                        MediaControllerCompat.getMediaController(MainActivity.this).getMetadata().getDescription());
+                intent.putExtra("token", token);
+                startActivity(intent);
+            }
+        });
 
         prev.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -250,9 +283,6 @@ public class MainActivity extends AppCompatActivity {
                 MediaControllerCompat.getMediaController(MainActivity.this).getTransportControls().skipToNext();
             }
         });
-
-        mediaControllerCallback = new MediaControllerCallback();
-        initBroadCasters();
     }
 
 
@@ -276,7 +306,6 @@ public class MainActivity extends AppCompatActivity {
 
         stopSeekbarUpdate();
         LocalBroadcastManager.getInstance(this).unregisterReceiver(sessionReceiver);
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(uiReceiver);
     }
 
     private class CustomAdapter extends ArrayAdapter<Samples.Sample> {
@@ -352,7 +381,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         void updateSelectedIndex(int position) {
-            if(selectedIndex != position) {
+            if (selectedIndex != position) {
                 selectedIndex = position;
                 notifyDataSetChanged();
             }

@@ -12,6 +12,7 @@ import android.os.ResultReceiver;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
+import android.widget.Toast;
 
 import com.google.android.exoplayer2.ControlDispatcher;
 import com.google.android.exoplayer2.ExoPlayerFactory;
@@ -39,7 +40,6 @@ public class MusicService extends Service {
     private PlayerNotificationManager playerNotificationManager;
     private MediaSessionCompat mediaSession;
     private MediaSessionConnector mediaSessionConnector;
-    private ExoPlayerListener exoPlayerListener;
 
     @Nullable
     @Override
@@ -52,12 +52,17 @@ public class MusicService extends Service {
         return START_STICKY;
     }
 
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        super.onTaskRemoved(rootIntent);
+        stopSelf();
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
-        exoPlayerListener = new ExoPlayerListener();
         player = ExoPlayerFactory.newSimpleInstance(this);
-        player.addListener(exoPlayerListener);
         DefaultDataSourceFactory dataSourceFactory = new DefaultDataSourceFactory(
                 this, Util.getUserAgent(this, "sample-music"));
         ConcatenatingMediaSource concatenatingMediaSource = new ConcatenatingMediaSource();
@@ -67,6 +72,9 @@ public class MusicService extends Service {
             concatenatingMediaSource.addMediaSource(mediaSource);
         }
         player.prepare(concatenatingMediaSource);
+
+        mediaSession = new MediaSessionCompat(this, "sample_music");
+        mediaSession.setActive(true);
 
         playerNotificationManager = PlayerNotificationManager.createWithNotificationChannel(
                 this,
@@ -83,8 +91,9 @@ public class MusicService extends Service {
                     @Nullable
                     @Override
                     public PendingIntent createCurrentContentIntent(Player player) {
-                        Intent intent = new Intent(MusicService.this, MainActivity.class);
-                        return PendingIntent.getActivity(MusicService.this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                        Intent intent = new Intent(MusicService.this, SongPage.class);
+                        intent.putExtra("token", mediaSession.getSessionToken());
+                        return PendingIntent.getActivity(MusicService.this, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
                     }
 
                     @Nullable
@@ -96,7 +105,7 @@ public class MusicService extends Service {
                     @Nullable
                     @Override
                     public Bitmap getCurrentLargeIcon(Player player, PlayerNotificationManager.BitmapCallback callback) {
-                        return Samples.getBitmap(
+                        return Samples.getIconBitmap(
                                 MusicService.this, SAMPLES[player.getCurrentWindowIndex()].bitmapResource);
                     }
                 }, new PlayerNotificationManager.NotificationListener() {
@@ -114,9 +123,6 @@ public class MusicService extends Service {
         playerNotificationManager.setUseNavigationActionsInCompactView(true);
         playerNotificationManager.setPlayer(player);
 
-        mediaSession = new MediaSessionCompat(this, "sample_music");
-        mediaSession.setActive(true);
-
         playerNotificationManager.setMediaSessionToken(mediaSession.getSessionToken());
 
         Intent i = new Intent("sessionToken");
@@ -127,7 +133,19 @@ public class MusicService extends Service {
         mediaSessionConnector.setQueueNavigator(new TimelineQueueNavigator(mediaSession) {
             @Override
             public MediaDescriptionCompat getMediaDescription(Player player, int windowIndex) {
-                return Samples.getMediaDescription(MusicService.this, SAMPLES[windowIndex]);
+                return Samples.getMediaDescription(MusicService.this, SAMPLES[windowIndex], windowIndex);
+            }
+
+            @Override
+            public void onSkipToPrevious(Player player, ControlDispatcher controlDispatcher) {
+                super.onSkipToPrevious(player, controlDispatcher);
+                player.setPlayWhenReady(true);
+            }
+
+            @Override
+            public void onSkipToNext(Player player, ControlDispatcher controlDispatcher) {
+                super.onSkipToNext(player, controlDispatcher);
+                player.setPlayWhenReady(true);
             }
         });
 
@@ -185,19 +203,8 @@ public class MusicService extends Service {
         mediaSession.release();
         mediaSessionConnector.setPlayer(null);
         playerNotificationManager.setPlayer(null);
-        player.removeListener(exoPlayerListener);
         player.release();
         player = null;
-
         super.onDestroy();
-    }
-
-    private class ExoPlayerListener implements Player.EventListener {
-        @Override
-        public void onPositionDiscontinuity(int reason) {
-            Intent i = new Intent("broadcastIndex");
-            i.putExtra("currentPlayingIndex", player.getCurrentWindowIndex());
-            LocalBroadcastManager.getInstance(MusicService.this).sendBroadcast(i);
-        }
     }
 }

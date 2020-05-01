@@ -13,7 +13,7 @@
         android:layout_marginTop="10dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/back_btn" />
+        app:srcCompat="@drawable/backselect" />
 
     <TextView
         android:id="@+id/playing_now"
@@ -23,7 +23,7 @@
         android:text="Playing now"
         android:textAllCaps="true"
         android:textColor="#666666"
-        android:textSize="16sp"
+        android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="@+id/back_btn"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -45,7 +45,6 @@
         android:id="@+id/big_album_circle"
         android:layout_width="300dp"
         android:layout_height="300dp"
-        android:layout_marginTop="30dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.496"
         app:layout_constraintStart_toStartOf="parent"
@@ -54,10 +53,10 @@
 
     <de.hdodenhof.circleimageview.CircleImageView
         android:id="@+id/album_artwork"
-        android:layout_width="220dp"
+        android:layout_width="225dp"
         android:layout_height="230dp"
         android:layout_gravity="center"
-        android:src="@drawable/parokya"
+        android:src="@drawable/me"
         app:layout_constraintBottom_toBottomOf="@+id/big_album_circle"
         app:layout_constraintEnd_toEndOf="@+id/big_album_circle"
         app:layout_constraintHorizontal_bias="0.54"
@@ -70,9 +69,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:fontFamily="@font/alef_bold"
-        android:text="Harana"
+        android:text="Sample Song"
         android:textColor="#B2B2B2"
-        android:textSize="32sp"
+        android:textSize="30sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/big_album_circle" />
@@ -82,9 +81,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:fontFamily="@font/alef_regular"
-        android:text="Parokya ni Edgar"
+        android:text="Sample description"
         android:textColor="#666666"
-        android:textSize="14sp"
+        android:textSize="12sp"
         app:layout_constraintEnd_toEndOf="@+id/songName"
         app:layout_constraintStart_toStartOf="@+id/songName"
         app:layout_constraintTop_toBottomOf="@+id/songName" />
@@ -109,7 +108,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="20dp"
         android:fontFamily="@font/alef_regular"
-        android:text="TextView"
+        android:text="-:-"
         android:textColor="#7A7A7A"
         android:textSize="12sp"
         app:layout_constraintBottom_toTopOf="@+id/seekbar"
@@ -121,7 +120,7 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="20dp"
         android:fontFamily="@font/alef_regular"
-        android:text="TextView"
+        android:text="-:-"
         android:textColor="#7A7A7A"
         android:textSize="12sp"
         app:layout_constraintBottom_toTopOf="@+id/seekbar"
@@ -131,6 +130,8 @@
         android:id="@+id/play_pause"
         android:layout_width="110dp"
         android:layout_height="110dp"
+        android:layout_marginTop="20dp"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -145,7 +146,7 @@
         app:layout_constraintBottom_toBottomOf="@+id/play_pause"
         app:layout_constraintEnd_toStartOf="@+id/play_pause"
         app:layout_constraintTop_toTopOf="@+id/play_pause"
-        app:srcCompat="@drawable/rewind_control" />
+        app:srcCompat="@drawable/prevbigselect" />
 
     <ImageView
         android:id="@+id/forward"
@@ -155,6 +156,6 @@
         app:layout_constraintBottom_toBottomOf="@+id/play_pause"
         app:layout_constraintStart_toEndOf="@+id/play_pause"
         app:layout_constraintTop_toTopOf="@+id/play_pause"
-        app:srcCompat="@drawable/forward_control" />
+        app:srcCompat="@drawable/nextbigselect" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

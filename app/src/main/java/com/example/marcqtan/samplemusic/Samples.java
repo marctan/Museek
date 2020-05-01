@@ -6,11 +6,14 @@ package com.example.marcqtan.samplemusic;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
+import android.util.DisplayMetrics;
+import android.util.TypedValue;
 
 import androidx.annotation.DrawableRes;
 
@@ -40,7 +43,7 @@ public final class Samples {
         }
     }
 
-    public static final Sample[] SAMPLES = new Sample[] {
+    public static final Sample[] SAMPLES = new Sample[]{
             new Sample(
                     "https://storage.googleapis.com/automotive-media/Jazz_In_Paris.mp3",
                     "audio_1",
@@ -64,15 +67,25 @@ public final class Samples {
                     162),
     };
 
-    public static Bitmap getBitmap(Context context, @DrawableRes int bitmapResource) {
+    private static Bitmap getBitmap(Context context, @DrawableRes int bitmapResource) {
+        Bitmap bmp = ((BitmapDrawable) context.getResources().getDrawable(bitmapResource)).getBitmap();
+        return Bitmap.createScaledBitmap(bmp, dipToPixels(context, 132), dipToPixels(context, 132), false);
+
+    }
+
+    static Bitmap getIconBitmap(Context context, @DrawableRes int bitmapResource) {
         return ((BitmapDrawable) context.getResources().getDrawable(bitmapResource)).getBitmap();
     }
 
-    public static MediaDescriptionCompat getMediaDescription(Context context, Sample sample) {
+    private static int dipToPixels(Context context, float dipValue) {
+        DisplayMetrics metrics = context.getResources().getDisplayMetrics();
+        return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dipValue, metrics));
+    }
+
+    static MediaDescriptionCompat getMediaDescription(Context context, Sample sample, int currentMediaIndex) {
         Bundle extras = new Bundle();
-        //Bitmap bitmap = getBitmap(context, sample.bitmapResource);
-       // extras.putParcelable(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap);
-       // extras.putParcelable(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, bitmap);
+        extras.putParcelable(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, getBitmap(context, sample.bitmapResource));
+        extras.putLong("currentMediaIndex", currentMediaIndex);
         extras.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, sample.duration * 1000);
         extras.putString(MediaMetadataCompat.METADATA_KEY_ARTIST, sample.description);
         return new MediaDescriptionCompat.Builder()

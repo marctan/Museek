@@ -31,16 +31,17 @@
 
     <de.hdodenhof.circleimageview.CircleImageView
         android:id="@+id/album_artwork"
-        android:layout_width="134dp"
-        android:layout_height="134dp"
+        android:layout_width="132dp"
+        android:layout_height="132dp"
         android:layout_gravity="center"
-        android:src="@drawable/parokya"
+        android:src="@drawable/me"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
         app:layout_constraintBottom_toBottomOf="@+id/album_circle"
         app:layout_constraintEnd_toEndOf="@+id/album_circle"
-        app:layout_constraintHorizontal_bias="0.54"
+        app:layout_constraintHorizontal_bias="0.531"
         app:layout_constraintStart_toStartOf="@+id/album_circle"
         app:layout_constraintTop_toTopOf="@+id/album_circle"
-        app:layout_constraintVertical_bias="0.54" />
+        app:layout_constraintVertical_bias="0.523" />
 
     <TextView
         android:id="@+id/songName"
@@ -48,7 +49,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
         android:fontFamily="@font/alef_bold"
-        android:text="HARANA"
+        android:text="-"
         android:textAllCaps="true"
         android:textColor="#666666"
         android:textSize="12sp"
@@ -76,10 +77,10 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="15dp"
         android:fontFamily="@font/alef_bold"
-        android:textSize="12sp"
-        android:text="PAROKYA"
+        android:text="-"
         android:textAllCaps="true"
         android:textColor="#666666"
+        android:textSize="12sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/songName"
@@ -103,7 +104,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/album_artwork"
         app:layout_constraintTop_toTopOf="@+id/album_artwork"
-        app:srcCompat="@drawable/nextselect"/>
+        app:srcCompat="@drawable/nextselect" />
 
     <ListView
         android:id="@+id/lv"
@@ -124,14 +125,14 @@
         tools:listitem="@layout/song_list_item" />
 
     <SeekBar
-        android:thumbOffset="9dp"
         android:id="@+id/seekbar"
-        android:thumb="@drawable/thumb_small"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:maxHeight="7dp"
         android:progressDrawable="@drawable/custom_seekbar"
         android:splitTrack="false"
+        android:thumb="@android:color/transparent"
+        android:thumbOffset="9dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/album_circle" />
@@ -142,9 +143,10 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="20dp"
         android:fontFamily="@font/alef_regular"
-        android:text="TextView"
+        android:text="-:-"
         android:textColor="#7A7A7A"
         android:textSize="12sp"
+        android:visibility="invisible"
         app:layout_constraintBottom_toTopOf="@+id/seekbar"
         app:layout_constraintStart_toStartOf="parent" />
 
@@ -154,9 +156,10 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="20dp"
         android:fontFamily="@font/alef_regular"
-        android:text="TextView"
+        android:text="-:-"
         android:textColor="#7A7A7A"
         android:textSize="12sp"
+        android:visibility="invisible"
         app:layout_constraintBottom_toTopOf="@+id/seekbar"
         app:layout_constraintEnd_toEndOf="parent" />
 
