@@ -20,7 +20,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:fontFamily="@font/alef_bold"
-        android:text="Playing now"
+        android:text="Now Playing"
         android:textAllCaps="true"
         android:textColor="#666666"
         android:textSize="14sp"
