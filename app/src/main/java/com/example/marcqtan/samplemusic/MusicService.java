@@ -3,17 +3,24 @@ package com.example.marcqtan.samplemusic;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.Parcelable;
 import android.os.ResultReceiver;
 import android.support.v4.media.MediaDescriptionCompat;
+import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
 import com.google.android.exoplayer2.ControlDispatcher;
 import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.Player;
@@ -27,10 +34,17 @@ import com.google.android.exoplayer2.ui.PlayerNotificationManager;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
 
-import static com.example.marcqtan.samplemusic.Samples.SAMPLES;
+import java.util.ArrayList;
+import java.util.List;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import io.reactivex.SingleObserver;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by Marc Q. Tan on 17/04/2020.
@@ -40,6 +54,48 @@ public class MusicService extends Service {
     private PlayerNotificationManager playerNotificationManager;
     private MediaSessionCompat mediaSession;
     private MediaSessionConnector mediaSessionConnector;
+    private List<TrackModel> tracks;
+    private static final String NC_MUSIC_ID = "16069159";
+    CompositeDisposable disposable;
+
+    private MediaDescriptionCompat getMediaDescription(TrackModel track, int currentMediaIndex) {
+        String album_artwork_large = null;
+        if (track.artwork_url != null) {
+            album_artwork_large = track.artwork_url.replace("large", "t500x500");
+        }
+
+        Bundle extras = new Bundle();
+        extras.putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, album_artwork_large);
+        extras.putLong("currentMediaIndex", currentMediaIndex);
+        extras.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, Long.parseLong(track.duration));
+        extras.putString(MediaMetadataCompat.METADATA_KEY_ARTIST, track.genre);
+        return new MediaDescriptionCompat.Builder()
+                .setMediaId(track.id)
+                .setTitle(track.title)
+                .setSubtitle(track.genre)
+                .setDescription(track.genre)
+                .setExtras(extras)
+                .build();
+    }
+
+
+    private void loadArtworkAsync(String url, PlayerNotificationManager.BitmapCallback callback) {
+        Glide.with(MusicService.this)
+                .asBitmap()
+                .load(url)
+                .into(new CustomTarget<Bitmap>() {
+                    @Override
+                    public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                        callback.onBitmap(resource);
+                    }
+
+                    @Override
+                    public void onLoadCleared(@Nullable Drawable placeholder) {
+
+                    }
+                });
+    }
+
 
     @Nullable
     @Override
@@ -63,15 +119,38 @@ public class MusicService extends Service {
     public void onCreate() {
         super.onCreate();
         player = ExoPlayerFactory.newSimpleInstance(this);
+        disposable = new CompositeDisposable();
         DefaultDataSourceFactory dataSourceFactory = new DefaultDataSourceFactory(
                 this, Util.getUserAgent(this, "sample-music"));
         ConcatenatingMediaSource concatenatingMediaSource = new ConcatenatingMediaSource();
-        for (Samples.Sample sample : SAMPLES) {
-            MediaSource mediaSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
-                    .createMediaSource(sample.uri);
-            concatenatingMediaSource.addMediaSource(mediaSource);
-        }
-        player.prepare(concatenatingMediaSource);
+
+        SCApi api = new SCApi();
+        api.getService().fetchUserTracks(NC_MUSIC_ID).observeOn(AndroidSchedulers.mainThread()).subscribeOn(Schedulers.io())
+                .subscribe(new SingleObserver<List<TrackModel>>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        disposable.add(d);
+                    }
+
+                    @Override
+                    public void onSuccess(List<TrackModel> trackModels) {
+                        TrackModel.setTrackModels(trackModels);
+                        Intent i = new Intent("tracks");
+                        LocalBroadcastManager.getInstance(MusicService.this).sendBroadcast(i);
+                        tracks = trackModels;
+                        for (TrackModel track : tracks) {
+                            MediaSource mediaSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
+                                    .createMediaSource(Uri.parse(track.stream_url + "?client_id=AIBMBzom4aIwS64tzA3uvg"));
+                            concatenatingMediaSource.addMediaSource(mediaSource);
+                        }
+                        player.prepare(concatenatingMediaSource);
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+
+                    }
+                });
 
         mediaSession = new MediaSessionCompat(this, "sample_music");
         mediaSession.setActive(true);
@@ -85,7 +164,7 @@ public class MusicService extends Service {
                 new PlayerNotificationManager.MediaDescriptionAdapter() {
                     @Override
                     public String getCurrentContentTitle(Player player) {
-                        return SAMPLES[player.getCurrentWindowIndex()].title;
+                        return tracks.get(player.getCurrentWindowIndex()).title;
                     }
 
                     @Nullable
@@ -99,14 +178,14 @@ public class MusicService extends Service {
                     @Nullable
                     @Override
                     public String getCurrentContentText(Player player) {
-                        return SAMPLES[player.getCurrentWindowIndex()].description;
+                        return tracks.get(player.getCurrentWindowIndex()).genre;
                     }
 
                     @Nullable
                     @Override
                     public Bitmap getCurrentLargeIcon(Player player, PlayerNotificationManager.BitmapCallback callback) {
-                        return Samples.getIconBitmap(
-                                MusicService.this, SAMPLES[player.getCurrentWindowIndex()].bitmapResource);
+                        loadArtworkAsync(tracks.get(player.getCurrentWindowIndex()).artwork_url, callback);
+                        return null;
                     }
                 }, new PlayerNotificationManager.NotificationListener() {
                     @Override
@@ -133,7 +212,7 @@ public class MusicService extends Service {
         mediaSessionConnector.setQueueNavigator(new TimelineQueueNavigator(mediaSession) {
             @Override
             public MediaDescriptionCompat getMediaDescription(Player player, int windowIndex) {
-                return Samples.getMediaDescription(MusicService.this, SAMPLES[windowIndex], windowIndex);
+                return MusicService.this.getMediaDescription(tracks.get(windowIndex), windowIndex);
             }
 
             @Override
@@ -167,10 +246,10 @@ public class MusicService extends Service {
             public void onPrepareFromMediaId(String mediaId, boolean playWhenReady, Bundle extras) {
 
                 //get the position from mediaId
-                if(player != null) {
-                    for (int x = 0; x < SAMPLES.length; x++) {
-                        Samples.Sample s = SAMPLES[x];
-                        if (s.mediaId.equals(mediaId)) {
+                if (player != null) {
+                    for (int x = 0; x < tracks.size(); x++) {
+                        TrackModel trackModel = tracks.get(x);
+                        if (trackModel.id.equals(mediaId)) {
                             player.seekTo(x, 0);
                             player.setPlayWhenReady(true);
                             break;
@@ -205,6 +284,7 @@ public class MusicService extends Service {
         playerNotificationManager.setPlayer(null);
         player.release();
         player = null;
+        disposable.dispose();
         super.onDestroy();
     }
 }

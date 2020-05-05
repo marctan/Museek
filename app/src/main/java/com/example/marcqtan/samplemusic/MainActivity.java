@@ -5,6 +5,20 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import io.reactivex.SingleObserver;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
+import okhttp3.HttpUrl;
+import okhttp3.Interceptor;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -36,10 +50,13 @@ import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
 import com.google.android.exoplayer2.util.Util;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Created by Marc Q. Tan on 17/04/2020.
@@ -52,15 +69,16 @@ public class MainActivity extends AppCompatActivity {
     ImageView prev, next, album_artwork;
     CustomAdapter adapter;
     SeekBar seekBar;
-    TextView start, end, title, subtitle;
+    TextView start, end, title;
     Handler handler;
     SeekBarRunnable runnable;
     private PlaybackStateCompat mLastPlaybackState;
-    ProgressBar progressBar;
+    ProgressBar progressBar, fetchTrack;
 
     MediaControllerCallback mediaControllerCallback;
 
     SessionTokenBroadCastReceiver sessionReceiver;
+    TrackBroadCastReceiver trackReceiver;
 
     private class MediaControllerCallback extends MediaControllerCompat.Callback {
         @Override
@@ -87,10 +105,11 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         title.setText(description.getTitle());
-        subtitle.setText(description.getSubtitle());
 
-        Bitmap bitmap = metadata.getBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART);
-        album_artwork.setImageBitmap(bitmap);
+        String url = metadata.getString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI);
+        if(url != null) {
+            Glide.with(this).load(url).into(album_artwork);
+        }
     }
 
     private void updatePlaybackState(PlaybackStateCompat state) {
@@ -140,7 +159,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void initBroadCasters() {
         sessionReceiver = new SessionTokenBroadCastReceiver();
+        trackReceiver = new TrackBroadCastReceiver();
         LocalBroadcastManager.getInstance(this).registerReceiver(sessionReceiver, new IntentFilter("sessionToken"));
+        LocalBroadcastManager.getInstance(this).registerReceiver(trackReceiver, new IntentFilter("tracks"));
     }
 
     private class SessionTokenBroadCastReceiver extends BroadcastReceiver {
@@ -161,6 +182,16 @@ public class MainActivity extends AppCompatActivity {
                         e.printStackTrace();
                     }
                 }
+            }
+        }
+    }
+
+    private class TrackBroadCastReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if("tracks".equals(intent.getAction())) {
+                adapter.setItem(TrackModel.getTrackModels());
+                fetchTrack.setVisibility(View.GONE);
             }
         }
     }
@@ -197,27 +228,25 @@ public class MainActivity extends AppCompatActivity {
         setTheme(R.style.AppTheme);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main_music_list);
+        fetchTrack = findViewById(R.id.progressBar2);
 
         mediaControllerCallback = new MediaControllerCallback();
         initBroadCasters();
         initSeekBarRunnable();
 
-        Intent i = new Intent(this, MusicService.class);
-        Util.startForegroundService(this, i);
+        Intent i = new Intent(MainActivity.this, MusicService.class);
+        Util.startForegroundService(MainActivity.this, i);
         lv = findViewById(R.id.lv);
 
-        ArrayList<Samples.Sample> data =
-                new ArrayList<>(Arrays.asList(Samples.SAMPLES));
-
-        adapter = new CustomAdapter(this, data);
+        adapter = new CustomAdapter(this);
         lv.setAdapter(adapter);
 
         progressBar = findViewById(R.id.progressBar);
+
         seekBar = findViewById(R.id.seekbar);
         start = findViewById(R.id.start);
         end = findViewById(R.id.end);
         title = findViewById(R.id.songName);
-        subtitle = findViewById(R.id.singer);
         seekBar.setEnabled(false); //set to true to show
 
         lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -225,7 +254,7 @@ public class MainActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 MediaControllerCompat controller = MediaControllerCompat.getMediaController(MainActivity.this);
                 MediaDescriptionCompat description = controller.getMetadata().getDescription();
-                String mediaId = Samples.SAMPLES[i].mediaId;
+                String mediaId = TrackModel.getTrackModels().get(i).id;
 
                 if (!mediaId.equals(description.getMediaId())) {
                     controller.getTransportControls().playFromMediaId(mediaId, null);
@@ -307,19 +336,32 @@ public class MainActivity extends AppCompatActivity {
 
         stopSeekbarUpdate();
         LocalBroadcastManager.getInstance(this).unregisterReceiver(sessionReceiver);
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(trackReceiver);
     }
 
-    private class CustomAdapter extends ArrayAdapter<Samples.Sample> {
+    private class CustomAdapter extends ArrayAdapter<TrackModel> {
         private Context ctx;
-        private ArrayList<Samples.Sample> data = new ArrayList<>();
+        private List<TrackModel> tracks;
         int selectedIndex;
         int state;
 
-        public CustomAdapter(@NonNull Context context, @NonNull ArrayList<Samples.Sample> objects) {
-            super(context, 0, objects);
+        public CustomAdapter(@NonNull Context context) {
+            super(context, 0);
             this.ctx = context;
-            this.data = objects;
             selectedIndex = -1;
+        }
+
+        public void setItem(List<TrackModel> tracks) {
+            this.tracks = tracks;
+            notifyDataSetChanged();
+        }
+
+        @Override
+        public int getCount() {
+            if(tracks == null) {
+                return 0;
+            }
+            return tracks.size();
         }
 
         @NonNull
@@ -330,12 +372,12 @@ public class MainActivity extends AppCompatActivity {
                 view = LayoutInflater.from(ctx).inflate(R.layout.song_list_item, parent, false);
             }
 
-            Samples.Sample s = data.get(position);
+            TrackModel track = tracks.get(position);
 
             TextView title = view.findViewById(R.id.title);
             TextView subtitle = view.findViewById(R.id.subtitle);
-            title.setText(s.title);
-            subtitle.setText(s.description);
+            title.setText(track.title);
+            subtitle.setText(track.genre);
 
             ImageView btn = view.findViewById(R.id.play_pause);
             ConstraintLayout cl = view.findViewById(R.id.song_detail_cl);
@@ -344,11 +386,15 @@ public class MainActivity extends AppCompatActivity {
 
             if (selectedIndex == position) {
                 if (state == PlaybackStateCompat.STATE_PLAYING) {
+                    title.setSelected(true);
                     cl.setBackground(ctx.getDrawable(R.drawable.timeline));
                     btn.setImageDrawable(ctx.getDrawable(R.drawable.small_pause));
+                } else {
+                    title.setSelected(false);
                 }
             } else {
                 cl.setBackground(null);
+                title.setSelected(false);
             }
 
             btn.setOnClickListener(new View.OnClickListener() {
@@ -356,7 +402,7 @@ public class MainActivity extends AppCompatActivity {
                 public void onClick(View view) {
                     if (selectedIndex != position) {
                         MediaControllerCompat.getMediaController(MainActivity.this).getTransportControls().playFromMediaId(
-                                Samples.SAMPLES[position].mediaId, null);
+                                tracks.get(position).id, null);
                         selectedIndex = position;
                         state = -1; //reset the state when clicking a different row
                     } else {

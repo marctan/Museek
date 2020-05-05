@@ -8,6 +8,7 @@
     tools:context=".MainActivity">
 
     <ProgressBar
+        android:elevation="2dp"
         android:indeterminate="true"
         android:indeterminateTintMode="src_atop"
         android:indeterminateTint="@color/colorPrimary"
@@ -16,6 +17,21 @@
         android:layout_width="wrap_content"
         android:layout_height="0dp"
         android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ProgressBar
+        android:elevation="2dp"
+        android:indeterminate="true"
+        android:indeterminateTintMode="src_atop"
+        android:indeterminateTint="@color/colorPrimary"
+        android:id="@+id/progressBar2"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -47,6 +63,11 @@
         app:layout_constraintVertical_bias="0.523" />
 
     <TextView
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:singleLine="true"
+        android:ellipsize="marquee"
         android:id="@+id/songName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -55,39 +76,11 @@
         android:text="-"
         android:textAllCaps="true"
         android:textColor="#666666"
-        android:textSize="12sp"
-        app:layout_constraintEnd_toStartOf="@+id/singer"
+        android:textSize="14sp"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_chainStyle="packed"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
-
-    <TextView
-        android:id="@+id/divider"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:fontFamily="@font/alef_bold"
-        android:text="•"
-        android:textAllCaps="true"
-        android:textColor="#666666"
-        android:textSize="12sp"
-        app:layout_constraintBottom_toTopOf="@+id/album_circle"
-        app:layout_constraintEnd_toStartOf="@id/singer"
-        app:layout_constraintStart_toEndOf="@id/songName" />
-
-    <TextView
-        android:id="@+id/singer"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="15dp"
-        android:fontFamily="@font/alef_bold"
-        android:text="-"
-        android:textAllCaps="true"
-        android:textColor="#666666"
-        android:textSize="12sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/songName"
-        app:layout_constraintTop_toTopOf="@+id/songName" />
 
     <ImageView
         android:id="@+id/prev"

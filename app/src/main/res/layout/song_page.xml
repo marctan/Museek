@@ -10,7 +10,6 @@
         android:id="@+id/back_btn"
         android:layout_width="90dp"
         android:layout_height="90dp"
-        android:layout_marginTop="10dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/backselect" />
@@ -65,13 +64,18 @@
         app:layout_constraintVertical_bias="0.54" />
 
     <TextView
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:singleLine="true"
+        android:ellipsize="marquee"
         android:id="@+id/songName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:fontFamily="@font/alef_bold"
         android:text="Sample Song"
         android:textColor="#B2B2B2"
-        android:textSize="30sp"
+        android:textSize="25sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/big_album_circle" />
@@ -83,7 +87,7 @@
         android:fontFamily="@font/alef_regular"
         android:text="Sample description"
         android:textColor="#666666"
-        android:textSize="12sp"
+        android:textSize="14sp"
         app:layout_constraintEnd_toEndOf="@+id/songName"
         app:layout_constraintStart_toStartOf="@+id/songName"
         app:layout_constraintTop_toBottomOf="@+id/songName" />
@@ -130,7 +134,7 @@
         android:id="@+id/play_pause"
         android:layout_width="110dp"
         android:layout_height="110dp"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="10dp"
         android:background="?android:attr/selectableItemBackgroundBorderless"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

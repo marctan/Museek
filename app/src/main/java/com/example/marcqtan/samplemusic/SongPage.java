@@ -23,6 +23,8 @@ import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
+
 public class SongPage extends AppCompatActivity {
 
     TextView songName, subtitle, start, end;
@@ -51,7 +53,7 @@ public class SongPage extends AppCompatActivity {
         runnable = new SeekBarRunnable();
     }
 
-    private void initBroadCasters() {
+    private void initializeCallback() {
         if (mediaControllerCompat == null && token != null) {
             try {
                 mediaControllerCompat = new MediaControllerCompat(SongPage.this, token);
@@ -92,8 +94,10 @@ public class SongPage extends AppCompatActivity {
         }
         songName.setText(description.getTitle());
         subtitle.setText(description.getSubtitle());
-        Bitmap bitmap = metadata.getBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART);
-        album_artwork.setImageBitmap(bitmap);
+        String url = metadata.getString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI);
+        if(url != null) {
+            Glide.with(this).load(url).into(album_artwork);
+        }
     }
 
     private void scheduleSeekbarUpdate() {
@@ -230,7 +234,17 @@ public class SongPage extends AppCompatActivity {
         //initSeekBarRunnable();
         token = getIntent().getParcelableExtra("token");
         mediaControllerCallback = new MediaControllerCallback();
-        initBroadCasters();
+        initializeCallback();
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (mediaControllerCompat != null) {
+            mediaControllerCompat.unregisterCallback(mediaControllerCallback);
+            mediaControllerCompat = null;
+        }
+
+        stopSeekbarUpdate();
+    }
 }

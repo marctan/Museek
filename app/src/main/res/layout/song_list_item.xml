@@ -9,9 +9,12 @@
     android:orientation="vertical">
 
     <TextView
+        android:singleLine="true"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="marquee_forever"
         android:id="@+id/title"
-        android:layout_width="wrap_content"
-        android:layout_height="22dp"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
         android:layout_marginLeft="15dp"
         android:layout_marginTop="5dp"
         android:fontFamily="@font/alef_bold"
@@ -21,6 +24,7 @@
         android:textColor="#D2D2D2"
         android:textSize="14sp"
         app:layout_constraintBottom_toTopOf="@+id/subtitle"
+        app:layout_constraintEnd_toStartOf="@+id/play_pause"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
