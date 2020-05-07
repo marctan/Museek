@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:layout_gravity="center"
+    android:orientation="vertical">
+
+    <TextView
+        android:fadeScrollbars="false"
+        android:scrollbarFadeDuration="0"
+        android:scrollbars="vertical"
+        android:scrollbarAlwaysDrawVerticalTrack="true"
+        android:textSize="16sp"
+        android:textColor="#D2D2D2"
+        android:autoLink="web"
+        android:id="@+id/tv"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="5dp"
+        android:textColorLink="#7bc9c2"
+        android:text="hello world" />
+</LinearLayout>

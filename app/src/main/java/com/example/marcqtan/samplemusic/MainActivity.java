@@ -2,6 +2,7 @@ package com.example.marcqtan.samplemusic;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
@@ -20,8 +21,10 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
+import android.app.Dialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
@@ -36,13 +39,21 @@ import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
+import android.text.Html;
 import android.text.format.DateUtils;
+import android.text.method.LinkMovementMethod;
+import android.util.DisplayMetrics;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -66,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
     ListView lv;
     MediaControllerCompat mediaControllerCompat;
     MediaSessionCompat.Token token;
-    ImageView prev, next, album_artwork;
+    ImageView prev, next, album_artwork, credits;
     CustomAdapter adapter;
     SeekBar seekBar;
     TextView start, end, title;
@@ -105,7 +116,6 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         title.setText(description.getTitle());
-
         String url = metadata.getString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI);
         if(url != null) {
             Glide.with(this).load(url).into(album_artwork);
@@ -288,6 +298,35 @@ public class MainActivity extends AppCompatActivity {
         prev = findViewById(R.id.prev);
         next = findViewById(R.id.next);
         album_artwork = findViewById(R.id.album_artwork);
+        credits = findViewById(R.id.credits);
+
+        credits.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Dialog custoDialog = new Dialog(MainActivity.this);
+                custoDialog.setContentView(R.layout.credits);
+                custoDialog.setCancelable(true);
+                custoDialog.setCanceledOnTouchOutside(true);
+
+                TextView tv = (TextView) custoDialog.findViewById(R.id.tv);
+                String url = MediaControllerCompat.getMediaController(MainActivity.this).getMetadata().getDescription().getDescription().toString();
+                tv.setText(url);
+                custoDialog.show();
+
+                DisplayMetrics displayMetrics = new DisplayMetrics();
+                getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+                int displayWidth = displayMetrics.widthPixels;
+                int displayHeight = displayMetrics.heightPixels;
+                WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
+                layoutParams.copyFrom(custoDialog.getWindow().getAttributes());
+                int dialogWindowWidth = (int) (displayWidth * 0.85f);
+                int dialogWindowHeight = (int) (displayHeight * 0.75f);
+                layoutParams.width = dialogWindowWidth;
+                layoutParams.height = dialogWindowHeight;
+                custoDialog.getWindow().setAttributes(layoutParams);
+
+            }
+        });
 
         album_artwork.setOnClickListener(new View.OnClickListener() {
             @Override

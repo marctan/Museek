@@ -3,6 +3,7 @@ package com.example.marcqtan.samplemusic;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import android.app.Dialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -18,7 +19,9 @@ import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.text.format.DateUtils;
+import android.util.DisplayMetrics;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -28,7 +31,7 @@ import com.bumptech.glide.Glide;
 public class SongPage extends AppCompatActivity {
 
     TextView songName, subtitle, start, end;
-    ImageView rewind, forward, back_btn, play_pause, album_artwork;
+    ImageView rewind, forward, back_btn, play_pause, album_artwork, credits;
     SeekBar seekBar;
     private PlaybackStateCompat mLastPlaybackState;
     MediaControllerCallback mediaControllerCallback;
@@ -176,9 +179,39 @@ public class SongPage extends AppCompatActivity {
         back_btn = findViewById(R.id.back_btn);
         play_pause = findViewById(R.id.play_pause);
         album_artwork = findViewById(R.id.album_artwork);
+        credits = findViewById(R.id.credits);
 
         start = findViewById(R.id.start);
         end = findViewById(R.id.end);
+
+
+        credits.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Dialog custoDialog = new Dialog(SongPage.this);
+                custoDialog.setContentView(R.layout.credits);
+                custoDialog.setCancelable(true);
+                custoDialog.setCanceledOnTouchOutside(true);
+
+                TextView tv = (TextView) custoDialog.findViewById(R.id.tv);
+                String url = MediaControllerCompat.getMediaController(SongPage.this).getMetadata().getDescription().getDescription().toString();
+                tv.setText(url);
+                custoDialog.show();
+
+                DisplayMetrics displayMetrics = new DisplayMetrics();
+                getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+                int displayWidth = displayMetrics.widthPixels;
+                int displayHeight = displayMetrics.heightPixels;
+                WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
+                layoutParams.copyFrom(custoDialog.getWindow().getAttributes());
+                int dialogWindowWidth = (int) (displayWidth * 0.85f);
+                int dialogWindowHeight = (int) (displayHeight * 0.75f);
+                layoutParams.width = dialogWindowWidth;
+                layoutParams.height = dialogWindowHeight;
+                custoDialog.getWindow().setAttributes(layoutParams);
+
+            }
+        });
 
         rewind.setOnClickListener(new View.OnClickListener() {
             @Override

@@ -73,7 +73,7 @@ public class MusicService extends Service {
                 .setMediaId(track.id)
                 .setTitle(track.title)
                 .setSubtitle(track.genre)
-                .setDescription(track.genre)
+                .setDescription(track.description)
                 .setExtras(extras)
                 .build();
     }

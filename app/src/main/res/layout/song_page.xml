@@ -162,4 +162,17 @@
         app:layout_constraintTop_toTopOf="@+id/play_pause"
         app:srcCompat="@drawable/nextbigselect" />
 
+    <ImageView
+        android:id="@+id/credits"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_marginEnd="30dp"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:tint="#818487"
+        app:layout_constraintBottom_toTopOf="@+id/big_album_circle"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/playing_now"
+        app:layout_constraintVertical_bias="0.51"
+        app:srcCompat="@drawable/credits" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

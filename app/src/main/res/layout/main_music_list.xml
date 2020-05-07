@@ -2,6 +2,7 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/rectangle_background"
@@ -53,8 +54,8 @@
         android:layout_width="132dp"
         android:layout_height="132dp"
         android:layout_gravity="center"
-        android:src="@drawable/me"
         android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/me"
         app:layout_constraintBottom_toBottomOf="@+id/album_circle"
         app:layout_constraintEnd_toEndOf="@+id/album_circle"
         app:layout_constraintHorizontal_bias="0.531"
@@ -63,16 +64,16 @@
         app:layout_constraintVertical_bias="0.523" />
 
     <TextView
-        android:focusable="true"
-        android:focusableInTouchMode="true"
-        android:marqueeRepeatLimit="marquee_forever"
-        android:singleLine="true"
-        android:ellipsize="marquee"
         android:id="@+id/songName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
+        android:ellipsize="marquee"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
         android:fontFamily="@font/alef_bold"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:singleLine="true"
         android:text="-"
         android:textAllCaps="true"
         android:textColor="#666666"
@@ -104,7 +105,7 @@
 
     <ListView
         android:id="@+id/lv"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_margin="10dp"
         android:layout_marginTop="30dp"
@@ -122,7 +123,7 @@
 
     <SeekBar
         android:id="@+id/seekbar"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:maxHeight="7dp"
         android:progressDrawable="@drawable/custom_seekbar"
@@ -158,5 +159,17 @@
         android:visibility="invisible"
         app:layout_constraintBottom_toTopOf="@+id/seekbar"
         app:layout_constraintEnd_toEndOf="parent" />
+
+    <ImageView
+        android:tint="#818487"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:id="@+id/credits"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_marginEnd="30dp"
+        app:layout_constraintBottom_toTopOf="@+id/album_artwork"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/songName"
+        app:srcCompat="@drawable/credits" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
