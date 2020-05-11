@@ -1,10 +1,5 @@
 package com.example.marcqtan.samplemusic;
 
-import android.content.Context;
-import android.os.Bundle;
-import android.support.v4.media.MediaDescriptionCompat;
-import android.support.v4.media.MediaMetadataCompat;
-
 import java.util.List;
 
 /**

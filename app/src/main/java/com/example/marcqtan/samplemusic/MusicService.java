@@ -3,21 +3,17 @@ package com.example.marcqtan.samplemusic;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.Parcelable;
 import android.os.ResultReceiver;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
-import android.widget.Toast;
-
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.request.transition.Transition;
@@ -33,10 +29,7 @@ import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.ui.PlayerNotificationManager;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
-
-import java.util.ArrayList;
 import java.util.List;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
@@ -56,6 +49,7 @@ public class MusicService extends Service {
     private MediaSessionConnector mediaSessionConnector;
     private List<TrackModel> tracks;
     private static final String NC_MUSIC_ID = "16069159";
+    private static MediaSessionCompat.Token mediaSessionToken;
     CompositeDisposable disposable;
 
     private MediaDescriptionCompat getMediaDescription(TrackModel track, int currentMediaIndex) {
@@ -204,6 +198,7 @@ public class MusicService extends Service {
 
         playerNotificationManager.setMediaSessionToken(mediaSession.getSessionToken());
 
+        mediaSessionToken = mediaSession.getSessionToken();
         Intent i = new Intent("sessionToken");
         i.putExtra("Token", mediaSession.getSessionToken());
         LocalBroadcastManager.getInstance(this).sendBroadcast(i);
@@ -277,8 +272,13 @@ public class MusicService extends Service {
         mediaSessionConnector.setPlayer(player);
     }
 
+    public static MediaSessionCompat.Token getMediaSessionToken(){
+        return mediaSessionToken;
+    }
+
     @Override
     public void onDestroy() {
+        mediaSessionToken = null;
         mediaSession.release();
         mediaSessionConnector.setPlayer(null);
         playerNotificationManager.setPlayer(null);

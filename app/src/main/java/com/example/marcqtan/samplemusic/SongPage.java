@@ -1,14 +1,9 @@
 package com.example.marcqtan.samplemusic;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-
 import android.app.Dialog;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
@@ -31,7 +26,7 @@ import com.bumptech.glide.Glide;
 public class SongPage extends AppCompatActivity {
 
     TextView songName, subtitle, start, end;
-    ImageView rewind, forward, back_btn, play_pause, album_artwork, credits;
+    ImageView rewind, forward, back_btn, play_pause, album_artwork, credits, sclogo;
     SeekBar seekBar;
     private PlaybackStateCompat mLastPlaybackState;
     MediaControllerCallback mediaControllerCallback;
@@ -180,10 +175,20 @@ public class SongPage extends AppCompatActivity {
         play_pause = findViewById(R.id.play_pause);
         album_artwork = findViewById(R.id.album_artwork);
         credits = findViewById(R.id.credits);
-
+        sclogo = findViewById(R.id.sclogo);
         start = findViewById(R.id.start);
         end = findViewById(R.id.end);
 
+        sclogo.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent();
+                intent.setAction(Intent.ACTION_VIEW);
+                intent.addCategory(Intent.CATEGORY_BROWSABLE);
+                intent.setData(Uri.parse("https://soundcloud.com"));
+                startActivity(intent);
+            }
+        });
 
         credits.setOnClickListener(new View.OnClickListener() {
             @Override
