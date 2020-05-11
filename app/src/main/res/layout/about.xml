@@ -166,7 +166,7 @@
         android:layout_height="0dp"
         android:layout_marginStart="20dp"
         android:layout_marginEnd="20dp"
-        android:text="All musics are from NCS (NoCopyRightSounds) and powered by SoundCloud® API.\n
+        android:text="All musics are from NCS (NoCopyrightSounds) and powered by SoundCloud® API.\n
 \nThis app does not provide download and offline functionality.\n
 \nCopyrights and original download links can be found by tapping the (i) icon."
         android:textColor="@color/colorPrimary"
