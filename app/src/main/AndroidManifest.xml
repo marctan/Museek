@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.marcqtan.samplemusic">
+    package="com.marcqtan.marcqtan.samplemusic">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -13,11 +13,11 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".SongPage"
+            android:name="com.marcqtan.marcqtan.samplemusic.SongPage"
             android:launchMode="singleTop"
             android:screenOrientation="portrait" />
         <activity
-            android:name=".MainActivity"
+            android:name="com.marcqtan.marcqtan.samplemusic.MainActivity"
             android:theme="@style/SplashTheme"
             android:screenOrientation="portrait">
             <intent-filter>
@@ -27,7 +27,7 @@
             </intent-filter>
         </activity>
 
-        <service android:name=".MusicService" />
+        <service android:name="com.marcqtan.marcqtan.samplemusic.MusicService" />
     </application>
 
 </manifest>

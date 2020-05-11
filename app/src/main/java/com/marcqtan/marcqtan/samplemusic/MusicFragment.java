@@ -1,4 +1,4 @@
-package com.example.marcqtan.samplemusic;
+package com.marcqtan.marcqtan.samplemusic;
 
 import android.app.Dialog;
 import android.content.BroadcastReceiver;

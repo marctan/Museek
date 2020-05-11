@@ -1,4 +1,4 @@
-package com.example.marcqtan.samplemusic;
+package com.marcqtan.marcqtan.samplemusic;
 
 import androidx.appcompat.app.AppCompatActivity;
 import android.app.Dialog;

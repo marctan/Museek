@@ -5,7 +5,7 @@ android {
     buildToolsVersion "29.0.2"
 
     defaultConfig {
-        applicationId "com.example.marcqtan.samplemusic"
+        applicationId "com.marcqtan.samplemusic"
         minSdkVersion 21
         targetSdkVersion 29
         versionCode 1
