@@ -36,7 +36,7 @@ class SCApi {
                 .baseUrl(BASE_URL)
                 .addConverterFactory(GsonConverterFactory.create())
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
-                .client(setupHttpClient().build())
+                //.client(setupHttpClient().build())
                 .build();
     }
 

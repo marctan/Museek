@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Path;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
@@ -14,6 +15,8 @@ import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
+import android.util.Log;
+
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.request.transition.Transition;
@@ -29,15 +32,32 @@ import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.ui.PlayerNotificationManager;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
+
+import org.reactivestreams.Subscription;
+
+import java.util.ArrayList;
 import java.util.List;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import io.reactivex.Flowable;
+import io.reactivex.FlowableSubscriber;
+import io.reactivex.Observable;
+import io.reactivex.ObservableSource;
+import io.reactivex.Observer;
+import io.reactivex.Single;
 import io.reactivex.SingleObserver;
+import io.reactivex.SingleSource;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Function;
+import io.reactivex.processors.BehaviorProcessor;
 import io.reactivex.schedulers.Schedulers;
+import io.reactivex.subjects.BehaviorSubject;
+import io.reactivex.subjects.PublishSubject;
+import io.reactivex.subjects.ReplaySubject;
 
 /**
  * Created by Marc Q. Tan on 17/04/2020.
@@ -49,6 +69,7 @@ public class MusicService extends Service {
     private MediaSessionConnector mediaSessionConnector;
     private List<TrackModel> tracks;
     private static final String NC_MUSIC_ID = "16069159";
+    private static final String client_id = "AIBMBzom4aIwS64tzA3uvg";
     private static MediaSessionCompat.Token mediaSessionToken;
     CompositeDisposable disposable;
 
@@ -119,15 +140,53 @@ public class MusicService extends Service {
         ConcatenatingMediaSource concatenatingMediaSource = new ConcatenatingMediaSource();
 
         SCApi api = new SCApi();
-        api.getService().fetchUserTracks(NC_MUSIC_ID).observeOn(AndroidSchedulers.mainThread()).subscribeOn(Schedulers.io())
-                .subscribe(new SingleObserver<List<TrackModel>>() {
+//        api.getService().fetchUserTracks(NC_MUSIC_ID).observeOn(AndroidSchedulers.mainThread()).subscribeOn(Schedulers.io())
+//                .subscribe(new SingleObserver<List<TrackModel>>() {
+//                    @Override
+//                    public void onSubscribe(Disposable d) {
+//                        disposable.add(d);
+//                    }
+//
+//                    @Override
+//                    public void onSuccess(List<TrackModel> trackModels) {
+//                        TrackModel.setTrackModels(trackModels);
+//                        Intent i = new Intent("tracks");
+//                        LocalBroadcastManager.getInstance(MusicService.this).sendBroadcast(i);
+//                        tracks = trackModels;
+//                        for (TrackModel track : tracks) {
+//                            MediaSource mediaSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
+//                                    .createMediaSource(Uri.parse(track.stream_url + "?client_id=AIBMBzom4aIwS64tzA3uvg"));
+//                            concatenatingMediaSource.addMediaSource(mediaSource);
+//                        }
+//                        player.prepare(concatenatingMediaSource);
+//                    }
+//
+//                    @Override
+//                    public void onError(Throwable e) {
+//
+//                    }
+//                });
+
+        Observable.range(0, Integer.MAX_VALUE)
+                .concatMap(integer -> api.getService().fetchUserTracks(NC_MUSIC_ID, client_id, 200, integer * 200).toObservable())
+                .takeUntil(result -> result.collection.size() == 0)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .toList()
+                .subscribe(new SingleObserver<List<TrackCollection>>() {
                     @Override
                     public void onSubscribe(Disposable d) {
                         disposable.add(d);
                     }
 
                     @Override
-                    public void onSuccess(List<TrackModel> trackModels) {
+                    public void onSuccess(List<TrackCollection> trackCollections) {
+                        List<TrackModel> trackModels = new ArrayList<>();
+
+                        for (int i = 0; i < trackCollections.size(); i++) {
+                            trackModels.addAll(trackCollections.get(i).collection);
+                        }
+
                         TrackModel.setTrackModels(trackModels);
                         Intent i = new Intent("tracks");
                         LocalBroadcastManager.getInstance(MusicService.this).sendBroadcast(i);
@@ -142,7 +201,6 @@ public class MusicService extends Service {
 
                     @Override
                     public void onError(Throwable e) {
-
                     }
                 });
 
@@ -272,7 +330,7 @@ public class MusicService extends Service {
         mediaSessionConnector.setPlayer(player);
     }
 
-    public static MediaSessionCompat.Token getMediaSessionToken(){
+    public static MediaSessionCompat.Token getMediaSessionToken() {
         return mediaSessionToken;
     }
 
