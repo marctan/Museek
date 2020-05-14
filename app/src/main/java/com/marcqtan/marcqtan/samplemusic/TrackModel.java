@@ -8,8 +8,6 @@ import java.util.List;
  * Created by Marc Q. Tan on 04/05/2020.
  */
 public class TrackModel {
-    private static List<TrackModel> trackModels;
-
     String description;
     String title;
     String duration;
@@ -18,11 +16,12 @@ public class TrackModel {
     String genre;
     String artwork_url;
 
-    static List<TrackModel> getTrackModels() {
-        return trackModels;
+    @Override
+    public boolean equals(Object obj) {
+        return !super.equals(obj);
     }
 
-    static void setTrackModels(List<TrackModel> trackModels){
-        TrackModel.trackModels = trackModels;
+    public int hashCode() {
+        return id.hashCode();
     }
 }

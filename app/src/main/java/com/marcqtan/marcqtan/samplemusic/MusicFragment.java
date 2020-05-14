@@ -2,12 +2,15 @@ package com.marcqtan.marcqtan.samplemusic;
 
 import android.app.Dialog;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.support.v4.media.MediaDescriptionCompat;
@@ -17,6 +20,7 @@ import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.text.format.DateUtils;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,6 +32,8 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.google.android.exoplayer2.util.Util;
+
+import java.util.ArrayList;
 import java.util.List;
 
 import androidx.annotation.NonNull;
@@ -37,11 +43,16 @@ import androidx.fragment.app.Fragment;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.processors.PublishProcessor;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by Marc Q. Tan on 08/05/2020.
  */
-public class MusicFragment extends Fragment implements SongAdapter.OnItemClickListener, MainActivity.OnFragmentReselected {
+public class MusicFragment extends Fragment implements SongAdapter.OnItemClickListener, MainActivity.OnFragmentReselected, MusicService.ServiceCallback {
 
 
     private RecyclerView rv;
@@ -58,11 +69,36 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
 
     private MediaControllerCallback mediaControllerCallback;
 
-    private SessionTokenBroadCastReceiver sessionReceiver;
-    private TrackBroadCastReceiver trackReceiver;
-
     private static int totalVisibleItems = 0;
     private int currentIndex = 0;
+
+    private boolean loading = false;
+    private final int VISIBLE_THRESHOLD = 1;
+    private int lastVisibleItem, totalItemCount;
+    private CompositeDisposable compositeDisposable = new CompositeDisposable();
+    private LinearLayoutManager linearLayoutManager;
+    private MusicService musicService;
+    private boolean mShouldUnbind;
+    private List<TrackModel> trackModels = new ArrayList<>();
+
+    private RVScrollListener rvScrollListener;
+
+    private class RVScrollListener extends RecyclerView.OnScrollListener {
+        @Override
+        public void onScrolled(RecyclerView recyclerView,
+                               int dx, int dy) {
+            super.onScrolled(recyclerView, dx, dy);
+
+            totalItemCount = linearLayoutManager.getItemCount();
+            lastVisibleItem = linearLayoutManager.findLastVisibleItemPosition();
+            if (!loading && totalItemCount <= (lastVisibleItem + VISIBLE_THRESHOLD)) {
+                musicService.getPaginator().onNext(musicService.getPageNumber());
+                loading = true;
+            }
+        }
+
+        ;
+    }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
@@ -74,7 +110,7 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
     public void onItemClick(int position) {
         MediaControllerCompat controller = MediaControllerCompat.getMediaController(requireActivity());
         MediaDescriptionCompat description = controller.getMetadata().getDescription();
-        String mediaId = TrackModel.getTrackModels().get(position).id;
+        String mediaId = trackModels.get(position).id;
 
         if (!mediaId.equals(description.getMediaId())) {
             controller.getTransportControls().playFromMediaId(mediaId, null);
@@ -101,6 +137,55 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
         }
     }
 
+    @Override
+    public void updateTracks(List<TrackModel> trackModels) {
+
+        if (trackModels == null || trackModels.size() == 0)
+            return;
+
+        this.trackModels.addAll(trackModels);
+        adapter.addItems(trackModels);
+
+        currentIndex = (int) mediaControllerCompat.getMetadata().getLong("currentMediaIndex");
+        adapter.updateSelectedIndex(currentIndex);
+
+        if (totalVisibleItems == 0) { //do only once
+            rv.post(new Runnable() {
+                @Override
+                public void run() {
+                    totalVisibleItems = rv.getChildCount();
+                }
+            });
+        } else {
+            if (currentIndex >= totalVisibleItems - 1) {
+                View v = getView();
+                if (v != null) {
+                    ((MotionLayout) v.findViewById(R.id.main_layout)).setProgress(1);
+                    rv.scrollToPosition(currentIndex);
+                }
+            }
+        }
+
+        startUpProgressBar.setVisibility(View.GONE);
+    }
+
+    @Override
+    public void initComponents(MediaSessionCompat.Token token) {
+        this.token = token;
+        if (mediaControllerCompat == null && token != null) {
+            try {
+                mediaControllerCompat = new MediaControllerCompat(requireActivity(), token);
+                MediaControllerCompat.setMediaController(requireActivity(), mediaControllerCompat);
+                updatePlaybackState(mediaControllerCompat.getPlaybackState());
+                updateDuration(mediaControllerCompat.getMetadata());
+                updateProgress();
+                updateMediaDescription(mediaControllerCompat.getMetadata());
+                mediaControllerCompat.registerCallback(mediaControllerCallback);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
     private class MediaControllerCallback extends MediaControllerCompat.Callback {
         @Override
@@ -179,49 +264,29 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
         runnable = new SeekBarRunnable();
     }
 
-    private void initBroadCasters() {
-        sessionReceiver = new SessionTokenBroadCastReceiver();
-        trackReceiver = new TrackBroadCastReceiver();
-        LocalBroadcastManager.getInstance(requireActivity()).registerReceiver(sessionReceiver, new IntentFilter("sessionToken"));
-        LocalBroadcastManager.getInstance(requireActivity()).registerReceiver(trackReceiver, new IntentFilter("tracks"));
+
+    private void setUpLoadMoreListener() {
+        rvScrollListener = new RVScrollListener();
+        rv.addOnScrollListener(rvScrollListener);
     }
 
-    private class SessionTokenBroadCastReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            // Get extra data included in the Intent
-            if (intent.getAction().equals("sessionToken")) {
-                token = intent.getParcelableExtra("Token");
-                if (mediaControllerCompat == null && token != null) {
-                    try {
-                        mediaControllerCompat = new MediaControllerCompat(requireActivity(), token);
-                        MediaControllerCompat.setMediaController(requireActivity(), mediaControllerCompat);
-                        updatePlaybackState(mediaControllerCompat.getPlaybackState());
-                        updateDuration(mediaControllerCompat.getMetadata());
-                        updateMediaDescription(mediaControllerCompat.getMetadata());
-                        mediaControllerCompat.registerCallback(mediaControllerCallback);
-                    } catch (RemoteException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
+    @Override
+    public void loadItem() {
+        loading = true;
+        startUpProgressBar.setVisibility(View.VISIBLE);
     }
 
-    private class TrackBroadCastReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if ("tracks".equals(intent.getAction())) {
-                adapter.setItem(TrackModel.getTrackModels());
-                rv.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        totalVisibleItems = rv.getChildCount();
-                    }
-                });
-                startUpProgressBar.setVisibility(View.GONE);
-            }
+    @Override
+    public void loadAfter(List<TrackModel> trackModels) {
+        startUpProgressBar.setVisibility(View.GONE);
+        this.trackModels.addAll(trackModels);
+        MyUtil.removeDuplicates(this.trackModels);
+        if (trackModels.size() == 0) { //all songs have been fetched
+            rv.removeOnScrollListener(rvScrollListener);
+            return;
         }
+        adapter.addItems(trackModels);
+        loading = false;
     }
 
     private void updateProgress() {
@@ -258,7 +323,7 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
         View v = inflater.inflate(R.layout.main_music_list, container, false);
 
         mediaControllerCallback = new MediaControllerCallback();
-        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(requireContext());
+        linearLayoutManager = new LinearLayoutManager(requireContext());
         rv = v.findViewById(R.id.rv);
 
 
@@ -276,6 +341,8 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
         title = v.findViewById(R.id.songName);
         seekBar.setEnabled(false); //set to true to show
         title.setSelected(true);
+
+        setUpLoadMoreListener();
 
         seekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -364,36 +431,10 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
             }
         });
         initSeekBarRunnable();
-        if (MusicService.getMediaSessionToken() != null) { //if has been init before
-            token = MusicService.getMediaSessionToken();
-            List<TrackModel> trackModels = TrackModel.getTrackModels();
-            try {
-                mediaControllerCompat = new MediaControllerCompat(requireActivity(), MusicService.getMediaSessionToken());
-                MediaControllerCompat.setMediaController(requireActivity(), mediaControllerCompat);
-                updatePlaybackState(mediaControllerCompat.getPlaybackState());
-                updateDuration(mediaControllerCompat.getMetadata());
-                updateProgress();
-                updateMediaDescription(mediaControllerCompat.getMetadata());
-                currentIndex = (int) mediaControllerCompat.getMetadata().getLong("currentMediaIndex");
-                adapter.updateSelectedIndex(currentIndex);
-
-                if (currentIndex >= totalVisibleItems - 1) {
-                    ((MotionLayout) v.findViewById(R.id.main_layout)).setProgress(1);
-                    rv.scrollToPosition(currentIndex);
-                }
-
-                mediaControllerCompat.registerCallback(mediaControllerCallback);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-            adapter.setItem(trackModels);
-            startUpProgressBar.setVisibility(View.GONE);
-        } else {
-            initBroadCasters();
-        }
 
         Intent i = new Intent(requireActivity(), MusicService.class);
         Util.startForegroundService(requireActivity(), i);
+        requireActivity().bindService(i, serviceConnection, Context.BIND_AUTO_CREATE);
 
         return v;
     }
@@ -409,6 +450,30 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
     }
 
 
+    /**
+     * Callbacks for service binding, passed to bindService()
+     */
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            // cast the IBinder and get MyService instance
+            MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
+            musicService = binder.getService();
+            musicService.setServiceCallbacks(MusicFragment.this);
+            musicService.initialize();
+            musicService.subscribeForData();
+            mShouldUnbind = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            musicService = null;
+            mShouldUnbind = false;
+        }
+
+    };
+
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -418,8 +483,11 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
         }
 
         stopSeekbarUpdate();
-        LocalBroadcastManager.getInstance(requireActivity()).unregisterReceiver(sessionReceiver);
-        LocalBroadcastManager.getInstance(requireActivity()).unregisterReceiver(trackReceiver);
+        compositeDisposable.dispose();
+        if (mShouldUnbind) {
+            musicService.setServiceCallbacks(null);
+            requireActivity().unbindService(serviceConnection);
+        }
     }
 
     public static MusicFragment newInstance() {

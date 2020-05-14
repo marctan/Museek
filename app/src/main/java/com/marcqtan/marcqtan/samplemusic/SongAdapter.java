@@ -10,6 +10,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import androidx.annotation.NonNull;
@@ -29,7 +30,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.MyViewHolder> 
     private OnItemClickListener listener;
     private Context ctx;
     private Activity act;
-    private List<TrackModel> tracks;
+    private List<TrackModel> tracks = new ArrayList<>();
     private int selectedIndex;
     private int state;
 
@@ -40,8 +41,9 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.MyViewHolder> 
         selectedIndex = -1;
     }
 
-    void setItem(List<TrackModel> tracks) {
-        this.tracks = tracks;
+    void addItems(List<TrackModel> tracks) {
+        this.tracks.addAll(tracks);
+        MyUtil.removeDuplicates(this.tracks);
         notifyDataSetChanged();
     }
 
@@ -101,7 +103,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.MyViewHolder> 
 
     @Override
     public int getItemCount() {
-        if(tracks == null) {
+        if (tracks == null) {
             return 0;
         }
         return tracks.size();
