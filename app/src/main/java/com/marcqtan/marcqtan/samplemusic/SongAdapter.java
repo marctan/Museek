@@ -2,6 +2,7 @@ package com.marcqtan.marcqtan.samplemusic;
 
 import android.app.Activity;
 import android.content.Context;
+import android.os.Bundle;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.view.LayoutInflater;
@@ -43,7 +44,6 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.MyViewHolder> 
 
     void addItems(List<TrackModel> tracks) {
         this.tracks.addAll(tracks);
-        MyUtil.removeDuplicates(this.tracks);
         notifyDataSetChanged();
     }
 
@@ -84,8 +84,10 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.MyViewHolder> 
             @Override
             public void onClick(View view) {
                 if (selectedIndex != position) {
+                    Bundle extras = new Bundle();
+                    extras.putInt("position", position);
                     MediaControllerCompat.getMediaController(act).getTransportControls().playFromMediaId(
-                            tracks.get(position).id, null);
+                            tracks.get(position).id, extras);
                     selectedIndex = position;
                     state = -1; //reset the state when clicking a different row
                 } else {

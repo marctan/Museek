@@ -58,7 +58,7 @@
         android:layout_height="132dp"
         android:layout_gravity="center"
         android:background="?android:attr/selectableItemBackgroundBorderless"
-        android:src="@drawable/me"
+
         app:layout_constraintBottom_toBottomOf="@+id/album_circle"
         app:layout_constraintEnd_toEndOf="@+id/album_circle"
         app:layout_constraintHorizontal_bias="0.531"

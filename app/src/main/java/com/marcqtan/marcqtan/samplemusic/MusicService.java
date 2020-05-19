@@ -146,7 +146,7 @@ public class MusicService extends Service {
                     }
                     pageNumber++;
                     tracks.addAll(items.collection);
-                    MyUtil.removeDuplicates(tracks);
+
                     for (TrackModel track : items.collection) {
                         MediaSource mediaSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
                                 .createMediaSource(Uri.parse(track.stream_url + "?client_id=" + client_id));
@@ -169,7 +169,9 @@ public class MusicService extends Service {
 
     }
 
-    private MediaDescriptionCompat getMediaDescription(TrackModel track, int currentMediaIndex) {
+    private MediaDescriptionCompat getMediaDescription(int currentMediaIndex) {
+        TrackModel track = tracks.get(currentMediaIndex);
+
         String album_artwork_large = null;
         if (track.artwork_url != null) {
             album_artwork_large = track.artwork_url.replace("large", "t500x500");
@@ -291,7 +293,7 @@ public class MusicService extends Service {
         mediaSessionConnector.setQueueNavigator(new TimelineQueueNavigator(mediaSession) {
             @Override
             public MediaDescriptionCompat getMediaDescription(Player player, int windowIndex) {
-                return MusicService.this.getMediaDescription(tracks.get(windowIndex), windowIndex);
+                return MusicService.this.getMediaDescription(windowIndex);
             }
 
             @Override
@@ -323,17 +325,11 @@ public class MusicService extends Service {
 
             @Override
             public void onPrepareFromMediaId(String mediaId, boolean playWhenReady, Bundle extras) {
-
-                //get the position from mediaId
-                if (player != null) {
-                    for (int x = 0; x < tracks.size(); x++) {
-                        TrackModel trackModel = tracks.get(x);
-                        if (trackModel.id.equals(mediaId)) {
-                            player.seekTo(x, 0);
-                            player.setPlayWhenReady(true);
-                            break;
-                        }
-                    }
+                int position = 0;
+                if (extras.size() > 0) {
+                    position = extras.getInt("position");
+                    player.seekTo(position, 0);
+                    player.setPlayWhenReady(true);
                 }
             }
 

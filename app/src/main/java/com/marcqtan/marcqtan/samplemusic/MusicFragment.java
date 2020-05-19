@@ -71,6 +71,7 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
 
     private static int totalVisibleItems = 0;
     private int currentIndex = 0;
+    private static int switchIndex = 0;
 
     private boolean loading = false;
     private final int VISIBLE_THRESHOLD = 1;
@@ -112,8 +113,10 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
         MediaDescriptionCompat description = controller.getMetadata().getDescription();
         String mediaId = trackModels.get(position).id;
 
+        Bundle extras = new Bundle();
+        extras.putInt("position",position);
         if (!mediaId.equals(description.getMediaId())) {
-            controller.getTransportControls().playFromMediaId(mediaId, null);
+            controller.getTransportControls().playFromMediaId(mediaId, extras);
             return;
         }
 
@@ -149,20 +152,11 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
         currentIndex = (int) mediaControllerCompat.getMetadata().getLong("currentMediaIndex");
         adapter.updateSelectedIndex(currentIndex);
 
-        if (totalVisibleItems == 0) { //do only once
-            rv.post(new Runnable() {
-                @Override
-                public void run() {
-                    totalVisibleItems = rv.getChildCount();
-                }
-            });
-        } else {
-            if (currentIndex >= totalVisibleItems - 1) {
-                View v = getView();
-                if (v != null) {
-                    ((MotionLayout) v.findViewById(R.id.main_layout)).setProgress(1);
-                    rv.scrollToPosition(currentIndex);
-                }
+        if (currentIndex >= totalVisibleItems - 1) { //when switching tab scroll to playing item
+            View v = getView();
+            if (v != null) {
+                ((MotionLayout) v.findViewById(R.id.main_layout)).setProgress(1);
+                rv.scrollToPosition(currentIndex);
             }
         }
 
@@ -204,6 +198,7 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
             updateDuration(metadata);
             adapter.updateSelectedIndex((int) metadata.getLong("currentMediaIndex"));
             currentIndex = (int) mediaControllerCompat.getMetadata().getLong("currentMediaIndex");
+            switchIndex = currentIndex;
         }
     }
 
@@ -280,12 +275,21 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
     public void loadAfter(List<TrackModel> trackModels) {
         startUpProgressBar.setVisibility(View.GONE);
         this.trackModels.addAll(trackModels);
-        MyUtil.removeDuplicates(this.trackModels);
         if (trackModels.size() == 0) { //all songs have been fetched
             rv.removeOnScrollListener(rvScrollListener);
             return;
         }
         adapter.addItems(trackModels);
+
+        if (totalVisibleItems == 0) { //do only once
+            rv.post(new Runnable() {
+                @Override
+                public void run() {
+                    totalVisibleItems = rv.getChildCount();
+                }
+            });
+        }
+
         loading = false;
     }
 
@@ -343,6 +347,13 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
         title.setSelected(true);
 
         setUpLoadMoreListener();
+
+        if (totalVisibleItems > 0) { //we need this to avoid flicker of transition
+            if (switchIndex > totalVisibleItems - 1) {
+                ((MotionLayout) v.findViewById(R.id.main_layout)).setProgress(1);
+                rv.scrollToPosition(switchIndex);
+            }
+        }
 
         seekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
             @Override
