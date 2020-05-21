@@ -3,6 +3,7 @@ package com.marcqtan.marcqtan.samplemusic;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Path;
@@ -12,6 +13,7 @@ import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.ResultReceiver;
+import android.provider.SearchRecentSuggestions;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
@@ -31,19 +33,24 @@ import com.google.android.exoplayer2.ext.mediasession.TimelineQueueNavigator;
 import com.google.android.exoplayer2.source.ConcatenatingMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
+import com.google.android.exoplayer2.source.ShuffleOrder;
 import com.google.android.exoplayer2.ui.PlayerNotificationManager;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
+import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import io.reactivex.Flowable;
 import io.reactivex.FlowableSubscriber;
@@ -56,6 +63,7 @@ import io.reactivex.SingleSource;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
 import io.reactivex.processors.BehaviorProcessor;
 import io.reactivex.processors.PublishProcessor;
@@ -103,6 +111,8 @@ public class MusicService extends Service {
         void loadItem();
 
         void loadAfter(List<TrackModel> trackModels);
+
+        void showDialog(PublishProcessor<Integer> p, int number);
     }
 
     public void setServiceCallbacks(ServiceCallback serviceCallback) {
@@ -134,8 +144,9 @@ public class MusicService extends Service {
                 .concatMapSingle(page -> new SCApi().getService().fetchUserTracks(NC_MUSIC_ID, client_id, 200, page * 200)
                         .subscribeOn(Schedulers.io())
                         .doOnError(throwable -> {
+                            Log.d("Error", "Error calling api");//404 or 500
                             // handle error
-                        }))
+                        }).retry(5))//retry 5 times first before showing alert dialog
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(items -> {
                     if (items.collection.size() == 0) { //all songs fetched
@@ -161,12 +172,11 @@ public class MusicService extends Service {
                     if (serviceCallback != null) {
                         serviceCallback.loadAfter(items.collection);
                     }
-                });
+                }, throwable -> {Log.d("Error", "Error fetching tracks!"); serviceCallback.showDialog(paginator, pageNumber);});
 
         this.disposable.add(disposable);
 
         paginator.onNext(pageNumber);
-
     }
 
     private MediaDescriptionCompat getMediaDescription(int currentMediaIndex) {

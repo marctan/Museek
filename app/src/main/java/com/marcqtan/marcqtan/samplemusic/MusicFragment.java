@@ -4,6 +4,7 @@ import android.app.Dialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
@@ -32,6 +33,7 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.google.android.exoplayer2.util.Util;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -114,7 +116,7 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
         String mediaId = trackModels.get(position).id;
 
         Bundle extras = new Bundle();
-        extras.putInt("position",position);
+        extras.putInt("position", position);
         if (!mediaId.equals(description.getMediaId())) {
             controller.getTransportControls().playFromMediaId(mediaId, extras);
             return;
@@ -152,10 +154,9 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
         currentIndex = (int) mediaControllerCompat.getMetadata().getLong("currentMediaIndex");
         adapter.updateSelectedIndex(currentIndex);
 
-        if (currentIndex >= totalVisibleItems - 1) { //when switching tab scroll to playing item
+        if (currentIndex >= totalVisibleItems - 1) { //when switching tab, scroll to playing item
             View v = getView();
             if (v != null) {
-                ((MotionLayout) v.findViewById(R.id.main_layout)).setProgress(1);
                 rv.scrollToPosition(currentIndex);
             }
         }
@@ -196,9 +197,12 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
             super.onMetadataChanged(metadata);
             updateMediaDescription(metadata);
             updateDuration(metadata);
-            adapter.updateSelectedIndex((int) metadata.getLong("currentMediaIndex"));
+            boolean updated = adapter.updateSelectedIndex((int) metadata.getLong("currentMediaIndex"));
             currentIndex = (int) mediaControllerCompat.getMetadata().getLong("currentMediaIndex");
             switchIndex = currentIndex;
+            if (updated) { //scroll to the currently playing song.
+                onReselect();
+            }
         }
     }
 
@@ -293,6 +297,28 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
         loading = false;
     }
 
+    @Override
+    public void showDialog(PublishProcessor<Integer> paginator, int pageNumber) {
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(requireContext());
+        builder.setTitle("Error!");
+        builder.setMessage("Error encountered while fetching tracks. Retry?");
+        builder.setNegativeButton("Exit", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                requireActivity().finishAndRemoveTask();
+            }
+        });
+        builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                musicService.subscribeForData();
+            }
+        });
+        builder.show();
+    }
+
     private void updateProgress() {
         if (mLastPlaybackState == null) {
             return;
@@ -351,7 +377,6 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
         if (totalVisibleItems > 0) { //we need this to avoid flicker of transition
             if (switchIndex > totalVisibleItems - 1) {
                 ((MotionLayout) v.findViewById(R.id.main_layout)).setProgress(1);
-                rv.scrollToPosition(switchIndex);
             }
         }
 

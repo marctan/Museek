@@ -44,6 +44,7 @@
 
         <OnSwipe
             app:dragDirection="dragUp"
+            app:touchRegionId="@id/rv"
             app:touchAnchorId="@id/rv"
             app:touchAnchorSide="top" />
 

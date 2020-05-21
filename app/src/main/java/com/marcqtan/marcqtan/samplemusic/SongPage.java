@@ -179,6 +179,8 @@ public class SongPage extends AppCompatActivity {
         start = findViewById(R.id.start);
         end = findViewById(R.id.end);
 
+        songName.setSelected(true);
+
         sclogo.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

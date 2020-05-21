@@ -34,6 +34,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.MyViewHolder> 
     private List<TrackModel> tracks = new ArrayList<>();
     private int selectedIndex;
     private int state;
+    int clicked = 0;
 
     SongAdapter(Context ctx, Activity act, OnItemClickListener listener) {
         this.listener = listener;
@@ -83,6 +84,15 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.MyViewHolder> 
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+
+                //shitty hack to fix google's bug in https://issuetracker.google.com/issues/149041228
+                if(clicked == 0 && position == 0) {
+                    clicked++;
+                    return;
+                }
+                clicked = 0;
+                //end of shitty hack
+
                 if (selectedIndex != position) {
                     Bundle extras = new Bundle();
                     extras.putInt("position", position);
@@ -119,11 +129,13 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.MyViewHolder> 
         }
     }
 
-    void updateSelectedIndex(int position) {
+    boolean updateSelectedIndex(int position) {
         if (selectedIndex != position) {
             selectedIndex = position;
             notifyDataSetChanged();
+            return true;
         }
+        return false;
     }
 
     class MyViewHolder extends RecyclerView.ViewHolder {
