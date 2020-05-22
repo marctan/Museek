@@ -87,7 +87,7 @@ public class SongPage extends AppCompatActivity {
         @Override
         public void onSessionReady() {
             super.onSessionReady();
-            MyUtil.updateRepeatDrawable(MusicFragment.REPEAT_MODE.values()[MediaControllerCompat.getMediaController(SongPage.this)
+            MyUtil.updateRepeatDrawable(MyUtil.REPEAT_MODE.values()[MediaControllerCompat.getMediaController(SongPage.this)
                             .getRepeatMode()]
                     , repeat, SongPage.this);
             MyUtil.updateShuffleDrawable(mediaControllerCompat.getShuffleMode() == PlaybackStateCompat.SHUFFLE_MODE_ALL, shuffle, SongPage.this);
@@ -202,12 +202,12 @@ public class SongPage extends AppCompatActivity {
                 MediaControllerCompat controllerCompat = MediaControllerCompat.getMediaController(SongPage.this);
                 MediaControllerCompat.TransportControls controls = controllerCompat.getTransportControls();
 
-                MusicFragment.REPEAT_MODE rmode = MusicFragment.REPEAT_MODE.values()[controllerCompat.getRepeatMode()];
+                MyUtil.REPEAT_MODE rmode = MyUtil.REPEAT_MODE.values()[controllerCompat.getRepeatMode()];
 
                 if (rmode.getValue() + 1 > 2) {
-                    rmode = MusicFragment.REPEAT_MODE.NONE;
+                    rmode = MyUtil.REPEAT_MODE.NONE;
                 } else {
-                    rmode = MusicFragment.REPEAT_MODE.values()[rmode.getValue() + 1];
+                    rmode = MyUtil.REPEAT_MODE.values()[rmode.getValue() + 1];
                 }
 
                 controls.setRepeatMode(rmode.getValue());

@@ -9,9 +9,26 @@ import androidx.core.content.ContextCompat;
 /**
  * Created by Marc Q. Tan on 22/05/2020.
  */
+
 public final class MyUtil {
 
-    public static void updateRepeatDrawable(MusicFragment.REPEAT_MODE rmode, ImageView repeat, Context ctx) {
+    public enum REPEAT_MODE {
+        NONE(0),
+        ONE(1),
+        ALL(2);
+
+        private int value = 0;
+
+        public int getValue() {
+            return value;
+        }
+
+        REPEAT_MODE(int value) {
+            this.value = value;
+        }
+    }
+
+    public static void updateRepeatDrawable(REPEAT_MODE rmode, ImageView repeat, Context ctx) {
         switch (rmode) {
             case ONE:
                 repeat.setImageDrawable(ctx.getDrawable(R.drawable.repeat_one));

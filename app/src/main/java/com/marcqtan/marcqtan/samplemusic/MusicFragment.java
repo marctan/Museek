@@ -90,21 +90,7 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
 
     private RVScrollListener rvScrollListener;
 
-    public enum REPEAT_MODE {
-        NONE(0),
-        ONE(1),
-        ALL(2);
 
-        private int value = 0;
-
-        public int getValue() {
-            return value;
-        }
-
-        REPEAT_MODE(int value) {
-            this.value = value;
-        }
-    }
 
     private class RVScrollListener extends RecyclerView.OnScrollListener {
         @Override
@@ -228,7 +214,7 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
         @Override
         public void onSessionReady() {
             super.onSessionReady();
-            MyUtil.updateRepeatDrawable(REPEAT_MODE.values()[mediaControllerCompat.getRepeatMode()], repeat, requireContext());
+            MyUtil.updateRepeatDrawable(MyUtil.REPEAT_MODE.values()[mediaControllerCompat.getRepeatMode()], repeat, requireContext());
             MyUtil.updateShuffleDrawable(mediaControllerCompat.getShuffleMode() == PlaybackStateCompat.SHUFFLE_MODE_ALL, shuffle, requireContext());
         }
     }
@@ -237,7 +223,7 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
     public void onResume() {
         super.onResume();
         if(mediaControllerCompat != null) {
-            MyUtil.updateRepeatDrawable(REPEAT_MODE.values()[mediaControllerCompat.getRepeatMode()], repeat, requireContext());
+            MyUtil.updateRepeatDrawable(MyUtil.REPEAT_MODE.values()[mediaControllerCompat.getRepeatMode()], repeat, requireContext());
             MyUtil.updateShuffleDrawable(mediaControllerCompat.getShuffleMode() == PlaybackStateCompat.SHUFFLE_MODE_ALL, shuffle, requireContext());
         }
     }
@@ -401,12 +387,12 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
                 MediaControllerCompat controllerCompat = MediaControllerCompat.getMediaController(requireActivity());
                 MediaControllerCompat.TransportControls controls = controllerCompat.getTransportControls();
 
-                REPEAT_MODE rmode = REPEAT_MODE.values()[controllerCompat.getRepeatMode()];
+                MyUtil.REPEAT_MODE rmode = MyUtil.REPEAT_MODE.values()[controllerCompat.getRepeatMode()];
 
                 if (rmode.getValue() + 1 > 2) {
-                    rmode = REPEAT_MODE.NONE;
+                    rmode = MyUtil.REPEAT_MODE.NONE;
                 } else {
-                    rmode = REPEAT_MODE.values()[rmode.getValue() + 1];
+                    rmode = MyUtil.REPEAT_MODE.values()[rmode.getValue() + 1];
                 }
 
                 controls.setRepeatMode(rmode.getValue());
