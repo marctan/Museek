@@ -69,13 +69,4 @@ public class MainActivity extends AppCompatActivity {
         ft.replace(R.id.container, f);
         ft.commit();
     }
-
-    @Override
-    public void onBackPressed() {
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-    }
 }

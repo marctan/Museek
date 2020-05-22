@@ -1,6 +1,7 @@
 package com.marcqtan.marcqtan.samplemusic;
 
 import androidx.appcompat.app.AppCompatActivity;
+
 import android.app.Dialog;
 import android.content.Intent;
 import android.net.Uri;
@@ -26,7 +27,7 @@ import com.bumptech.glide.Glide;
 public class SongPage extends AppCompatActivity {
 
     TextView songName, subtitle, start, end;
-    ImageView rewind, forward, back_btn, play_pause, album_artwork, credits, sclogo;
+    ImageView rewind, forward, back_btn, play_pause, album_artwork, credits, sclogo, repeat, shuffle;
     SeekBar seekBar;
     private PlaybackStateCompat mLastPlaybackState;
     MediaControllerCallback mediaControllerCallback;
@@ -46,7 +47,7 @@ public class SongPage extends AppCompatActivity {
         }
     }
 
-    private void initSeekBarRunnable(){
+    private void initSeekBarRunnable() {
         handler = new Handler();
         runnable = new SeekBarRunnable();
     }
@@ -82,6 +83,15 @@ public class SongPage extends AppCompatActivity {
             updateMediaDescription(metadata);
             updateDuration(metadata);
         }
+
+        @Override
+        public void onSessionReady() {
+            super.onSessionReady();
+            MyUtil.updateRepeatDrawable(MusicFragment.REPEAT_MODE.values()[MediaControllerCompat.getMediaController(SongPage.this)
+                            .getRepeatMode()]
+                    , repeat, SongPage.this);
+            MyUtil.updateShuffleDrawable(mediaControllerCompat.getShuffleMode() == PlaybackStateCompat.SHUFFLE_MODE_ALL, shuffle, SongPage.this);
+        }
     }
 
     private void updateMediaDescription(MediaMetadataCompat metadata) {
@@ -93,7 +103,7 @@ public class SongPage extends AppCompatActivity {
         songName.setText(description.getTitle());
         subtitle.setText(description.getSubtitle());
         String url = metadata.getString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI);
-        if(url != null) {
+        if (url != null) {
             Glide.with(this).load(url).into(album_artwork);
         }
     }
@@ -178,8 +188,50 @@ public class SongPage extends AppCompatActivity {
         sclogo = findViewById(R.id.sclogo);
         start = findViewById(R.id.start);
         end = findViewById(R.id.end);
+        shuffle = findViewById(R.id.shuffle);
+        repeat = findViewById(R.id.repeat);
 
         songName.setSelected(true);
+
+        shuffle = findViewById(R.id.shuffle);
+        repeat = findViewById(R.id.repeat);
+
+        repeat.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                MediaControllerCompat controllerCompat = MediaControllerCompat.getMediaController(SongPage.this);
+                MediaControllerCompat.TransportControls controls = controllerCompat.getTransportControls();
+
+                MusicFragment.REPEAT_MODE rmode = MusicFragment.REPEAT_MODE.values()[controllerCompat.getRepeatMode()];
+
+                if (rmode.getValue() + 1 > 2) {
+                    rmode = MusicFragment.REPEAT_MODE.NONE;
+                } else {
+                    rmode = MusicFragment.REPEAT_MODE.values()[rmode.getValue() + 1];
+                }
+
+                controls.setRepeatMode(rmode.getValue());
+                MyUtil.updateRepeatDrawable(rmode, repeat, SongPage.this);
+
+            }
+        });
+
+        shuffle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                boolean enabled = false;
+                MediaControllerCompat controllerCompat = MediaControllerCompat.getMediaController(SongPage.this);
+                MediaControllerCompat.TransportControls controls = controllerCompat.getTransportControls();
+                if (controllerCompat.getShuffleMode() == PlaybackStateCompat.SHUFFLE_MODE_ALL) {
+                    controls.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_NONE);
+                } else {
+                    controls.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_ALL);
+                    enabled = true;
+                }
+
+                MyUtil.updateShuffleDrawable(enabled, shuffle, SongPage.this);
+            }
+        });
 
         sclogo.setOnClickListener(new View.OnClickListener() {
             @Override

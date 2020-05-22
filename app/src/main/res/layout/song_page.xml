@@ -156,7 +156,6 @@
         android:id="@+id/forward"
         android:layout_width="110dp"
         android:layout_height="110dp"
-        android:layout_marginStart="4dp"
         app:layout_constraintBottom_toBottomOf="@+id/play_pause"
         app:layout_constraintStart_toEndOf="@+id/play_pause"
         app:layout_constraintTop_toTopOf="@+id/play_pause"
@@ -186,4 +185,30 @@
         app:layout_constraintBottom_toTopOf="@+id/songName"
         app:layout_constraintEnd_toEndOf="parent"
         app:srcCompat="@drawable/soundcloud" />
+
+    <ImageView
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:id="@+id/shuffle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:tint="@color/colorAccent"
+        app:layout_constraintBottom_toBottomOf="@+id/rewind"
+        app:layout_constraintEnd_toStartOf="@+id/rewind"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/rewind"
+        app:srcCompat="@drawable/shuffle" />
+
+    <ImageView
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:id="@+id/repeat"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="20dp"
+        android:tint="@color/colorAccent"
+        app:layout_constraintBottom_toBottomOf="@+id/forward"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/forward"
+        app:layout_constraintTop_toTopOf="@+id/forward"
+        app:srcCompat="@drawable/repeat" />
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -8,6 +8,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.media.session.MediaController;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -26,12 +27,14 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
+import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.util.Util;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
@@ -41,6 +44,7 @@ import java.util.List;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.constraintlayout.motion.widget.MotionLayout;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -60,7 +64,7 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
     private RecyclerView rv;
     private MediaControllerCompat mediaControllerCompat;
     private MediaSessionCompat.Token token;
-    private ImageView prev, next, album_artwork, credits, sclogo;
+    private ImageView prev, next, album_artwork, credits, sclogo, shuffle, repeat;
     private SongAdapter adapter;
     private SeekBar seekBar;
     private TextView start, end, title;
@@ -85,6 +89,22 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
     private List<TrackModel> trackModels = new ArrayList<>();
 
     private RVScrollListener rvScrollListener;
+
+    public enum REPEAT_MODE {
+        NONE(0),
+        ONE(1),
+        ALL(2);
+
+        private int value = 0;
+
+        public int getValue() {
+            return value;
+        }
+
+        REPEAT_MODE(int value) {
+            this.value = value;
+        }
+    }
 
     private class RVScrollListener extends RecyclerView.OnScrollListener {
         @Override
@@ -197,12 +217,28 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
             super.onMetadataChanged(metadata);
             updateMediaDescription(metadata);
             updateDuration(metadata);
-            boolean updated = adapter.updateSelectedIndex((int) metadata.getLong("currentMediaIndex"));
+            adapter.updateSelectedIndex((int) metadata.getLong("currentMediaIndex"));
             currentIndex = (int) mediaControllerCompat.getMetadata().getLong("currentMediaIndex");
-            switchIndex = currentIndex;
-            if (updated) { //scroll to the currently playing song.
+            if (switchIndex != currentIndex) { //scroll to the currently playing song.
                 onReselect();
             }
+            switchIndex = currentIndex;
+        }
+
+        @Override
+        public void onSessionReady() {
+            super.onSessionReady();
+            MyUtil.updateRepeatDrawable(REPEAT_MODE.values()[mediaControllerCompat.getRepeatMode()], repeat, requireContext());
+            MyUtil.updateShuffleDrawable(mediaControllerCompat.getShuffleMode() == PlaybackStateCompat.SHUFFLE_MODE_ALL, shuffle, requireContext());
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if(mediaControllerCompat != null) {
+            MyUtil.updateRepeatDrawable(REPEAT_MODE.values()[mediaControllerCompat.getRepeatMode()], repeat, requireContext());
+            MyUtil.updateShuffleDrawable(mediaControllerCompat.getShuffleMode() == PlaybackStateCompat.SHUFFLE_MODE_ALL, shuffle, requireContext());
         }
     }
 
@@ -356,6 +392,46 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
         linearLayoutManager = new LinearLayoutManager(requireContext());
         rv = v.findViewById(R.id.rv);
 
+        shuffle = v.findViewById(R.id.shuffle);
+        repeat = v.findViewById(R.id.repeat);
+
+        repeat.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                MediaControllerCompat controllerCompat = MediaControllerCompat.getMediaController(requireActivity());
+                MediaControllerCompat.TransportControls controls = controllerCompat.getTransportControls();
+
+                REPEAT_MODE rmode = REPEAT_MODE.values()[controllerCompat.getRepeatMode()];
+
+                if (rmode.getValue() + 1 > 2) {
+                    rmode = REPEAT_MODE.NONE;
+                } else {
+                    rmode = REPEAT_MODE.values()[rmode.getValue() + 1];
+                }
+
+                controls.setRepeatMode(rmode.getValue());
+                MyUtil.updateRepeatDrawable(rmode, repeat, requireContext());
+
+            }
+        });
+
+        shuffle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                boolean enabled = false;
+                MediaControllerCompat controllerCompat = MediaControllerCompat.getMediaController(requireActivity());
+                MediaControllerCompat.TransportControls controls = controllerCompat.getTransportControls();
+                if (controllerCompat.getShuffleMode() == PlaybackStateCompat.SHUFFLE_MODE_ALL) {
+                    controls.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_NONE);
+                } else {
+                    controls.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_ALL);
+                    enabled = true;
+                }
+
+                MyUtil.updateShuffleDrawable(enabled, shuffle, requireContext());
+            }
+        });
+
 
         adapter = new SongAdapter(getContext(), requireActivity(), this);
         rv.setAdapter(adapter);
@@ -375,7 +451,7 @@ public class MusicFragment extends Fragment implements SongAdapter.OnItemClickLi
         setUpLoadMoreListener();
 
         if (totalVisibleItems > 0) { //we need this to avoid flicker of transition
-            if (switchIndex > totalVisibleItems - 1) {
+            if (switchIndex >= totalVisibleItems - 1) {
                 ((MotionLayout) v.findViewById(R.id.main_layout)).setProgress(1);
             }
         }

@@ -129,13 +129,11 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.MyViewHolder> 
         }
     }
 
-    boolean updateSelectedIndex(int position) {
+    void updateSelectedIndex(int position) {
         if (selectedIndex != position) {
             selectedIndex = position;
             notifyDataSetChanged();
-            return true;
         }
-        return false;
     }
 
     class MyViewHolder extends RecyclerView.ViewHolder {

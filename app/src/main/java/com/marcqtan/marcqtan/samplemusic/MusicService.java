@@ -172,7 +172,10 @@ public class MusicService extends Service {
                     if (serviceCallback != null) {
                         serviceCallback.loadAfter(items.collection);
                     }
-                }, throwable -> {Log.d("Error", "Error fetching tracks!"); serviceCallback.showDialog(paginator, pageNumber);});
+                }, throwable -> {
+                    Log.d("Error", "Error fetching tracks!");
+                    serviceCallback.showDialog(paginator, pageNumber);
+                });
 
         this.disposable.add(disposable);
 
@@ -242,6 +245,8 @@ public class MusicService extends Service {
     public void onCreate() {
         super.onCreate();
         player = ExoPlayerFactory.newSimpleInstance(this);
+        //player.setRepeatMode(Player.REPEAT_MODE_ONE);
+        //player.setShuffleModeEnabled(true);
         disposable = new CompositeDisposable();
         dataSourceFactory = new DefaultDataSourceFactory(
                 this, Util.getUserAgent(this, "sample-music"));
