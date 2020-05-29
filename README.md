@@ -1,4 +1,4 @@
-# Museek
+# Loop
 A Music Player with Neumorphic design. <br>
 Playstore link: https://play.google.com/store/apps/details?id=com.marcqtan.samplemusic
 
