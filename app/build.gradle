@@ -16,8 +16,8 @@ android {
         applicationId "com.marcqtan.samplemusic"
         minSdkVersion 21
         targetSdkVersion 29
-        versionCode 4
-        versionName "2.2"
+        versionCode 5
+        versionName "2.3"
     }
     compileOptions {
         sourceCompatibility = 1.8
