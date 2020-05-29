@@ -1,6 +1,9 @@
 # Loop
 A Music Player with Neumorphic design. <br>
-Playstore link: https://play.google.com/store/apps/details?id=com.marcqtan.samplemusic
+Playstore link: https://play.google.com/store/apps/details?id=com.marcqtan.samplemusic <br>
+
+<h2>Technologies used: MVVM, DataBinding, LiveData, Retrofit, RXJava, SoundCloud API, Glide, ViewBinding, MediaSession, Exoplayer</h2>
+
 
 
 A collection of NCS top tracks. No ads. No registration. No subscription required. 
