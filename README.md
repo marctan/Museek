@@ -2,7 +2,7 @@
 A Music Player with Neumorphic design. <br>
 Playstore link: https://play.google.com/store/apps/details?id=com.marcqtan.samplemusic <br>
 
-<h3>Technologies used: <br> MVVM, DataBinding, LiveData, Retrofit, RXJava, SoundCloud API, Glide, ViewBinding, MediaSession, Exoplayer</h3>
+<h3>Technologies used: <br>Motion Layout, Material Design, MVVM, DataBinding, LiveData, Retrofit, RXJava, SoundCloud API, Glide, ViewBinding, MediaSession, Exoplayer</h3>
 
 
 
