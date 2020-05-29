@@ -27,7 +27,7 @@
             </intent-filter>
         </activity>
 
-        <service android:name="com.marcqtan.marcqtan.samplemusic.MusicService" />
+        <service android:name="com.marcqtan.marcqtan.samplemusic.service.MusicService" />
     </application>
 
 </manifest>

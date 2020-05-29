@@ -8,13 +8,15 @@ import androidx.fragment.app.FragmentTransaction;
 import android.os.Bundle;
 import android.view.MenuItem;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.marcqtan.marcqtan.samplemusic.databinding.ActivityMainBinding;
+import com.marcqtan.marcqtan.samplemusic.fragments.AboutFragment;
+import com.marcqtan.marcqtan.samplemusic.fragments.MusicFragment;
 
 /**
  * Created by Marc Q. Tan on 17/04/2020.
  */
 
 public class MainActivity extends AppCompatActivity {
-    BottomNavigationView bottomNavigationView;
     OnFragmentReselected onFragmentReselected;
 
     public interface OnFragmentReselected {
@@ -25,13 +27,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         setTheme(R.style.AppTheme);
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        ActivityMainBinding binding = ActivityMainBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
 
-        bottomNavigationView = findViewById(R.id.bottom_view);
+        binding.bottomView.setSelectedItemId(R.id.music);
 
-        bottomNavigationView.setSelectedItemId(R.id.music);
-
-        bottomNavigationView.setOnNavigationItemSelectedListener(new BottomNavigationView.OnNavigationItemSelectedListener() {
+        binding.bottomView.setOnNavigationItemSelectedListener(new BottomNavigationView.OnNavigationItemSelectedListener() {
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
                 Fragment f = null;
@@ -49,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        bottomNavigationView.setOnNavigationItemReselectedListener(new BottomNavigationView.OnNavigationItemReselectedListener() {
+        binding.bottomView.setOnNavigationItemReselectedListener(new BottomNavigationView.OnNavigationItemReselectedListener() {
             @Override
             public void onNavigationItemReselected(@NonNull MenuItem item) {
                 if(onFragmentReselected != null) {
@@ -62,6 +63,11 @@ public class MainActivity extends AppCompatActivity {
 
     public void setOnFragmentReselectedListener(OnFragmentReselected listener) {
         onFragmentReselected = listener;
+    }
+
+    @Override
+    public void onBackPressed() {
+        moveTaskToBack(true);
     }
 
     private void openFragment(Fragment f) {

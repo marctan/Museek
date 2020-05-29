@@ -1,6 +1,8 @@
 package com.marcqtan.marcqtan.samplemusic;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 
 import android.app.Dialog;
 import android.content.Intent;
@@ -8,8 +10,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
-import android.os.SystemClock;
-import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
@@ -18,18 +18,16 @@ import android.text.format.DateUtils;
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.ImageView;
-import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
+import com.marcqtan.marcqtan.samplemusic.callback.MediaControllerCallback;
+import com.marcqtan.marcqtan.samplemusic.databinding.SongPageBinding;
+import com.marcqtan.marcqtan.samplemusic.utils.MyUtil;
+import com.marcqtan.marcqtan.samplemusic.viewmodel.PlaybackViewModel;
 
 public class SongPage extends AppCompatActivity {
 
-    TextView songName, subtitle, start, end;
-    ImageView rewind, forward, back_btn, play_pause, album_artwork, credits, sclogo, repeat, shuffle;
-    SeekBar seekBar;
-    private PlaybackStateCompat mLastPlaybackState;
     MediaControllerCallback mediaControllerCallback;
     Handler handler;
     SeekBarRunnable runnable;
@@ -37,12 +35,12 @@ public class SongPage extends AppCompatActivity {
 
     MediaControllerCompat mediaControllerCompat;
 
-    int playState = 0;
+    PlaybackViewModel playbackViewModel;
 
     private class SeekBarRunnable implements Runnable {
         @Override
         public void run() {
-            updateProgress();
+            playbackViewModel.updateProgress();
             handler.postDelayed(this, 1000);
         }
     }
@@ -56,55 +54,15 @@ public class SongPage extends AppCompatActivity {
         if (mediaControllerCompat == null && token != null) {
             try {
                 mediaControllerCompat = new MediaControllerCompat(SongPage.this, token);
-                updatePlaybackState(mediaControllerCompat.getPlaybackState());
-                updateDuration(mediaControllerCompat.getMetadata());
-                updateMediaDescription(mediaControllerCompat.getMetadata());
+                playbackViewModel.updatePlaybackState(mediaControllerCompat.getPlaybackState());
+                playbackViewModel.updateDuration(mediaControllerCompat.getMetadata());
+                playbackViewModel.updateMediaDescription(mediaControllerCompat.getMetadata());
                 MediaControllerCompat.setMediaController(SongPage.this, mediaControllerCompat);
-                updateProgress();
+                playbackViewModel.updateProgress();
                 mediaControllerCompat.registerCallback(mediaControllerCallback);
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
-        }
-    }
-
-    private class MediaControllerCallback extends MediaControllerCompat.Callback {
-        @Override
-        public void onPlaybackStateChanged(PlaybackStateCompat state) {
-            if (state == null) {
-                return;
-            }
-            updatePlaybackState(state);
-        }
-
-        @Override
-        public void onMetadataChanged(MediaMetadataCompat metadata) {
-            super.onMetadataChanged(metadata);
-            updateMediaDescription(metadata);
-            updateDuration(metadata);
-        }
-
-        @Override
-        public void onSessionReady() {
-            super.onSessionReady();
-            MyUtil.updateRepeatDrawable(MyUtil.REPEAT_MODE.values()[MediaControllerCompat.getMediaController(SongPage.this)
-                            .getRepeatMode()]
-                    , repeat, SongPage.this);
-            MyUtil.updateShuffleDrawable(mediaControllerCompat.getShuffleMode() == PlaybackStateCompat.SHUFFLE_MODE_ALL, shuffle, SongPage.this);
-        }
-    }
-
-    private void updateMediaDescription(MediaMetadataCompat metadata) {
-        MediaDescriptionCompat description = metadata.getDescription();
-
-        if (description == null) {
-            return;
-        }
-        songName.setText(description.getTitle());
-        subtitle.setText(description.getSubtitle());
-        String url = metadata.getString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI);
-        if (url != null) {
-            Glide.with(this).load(url).into(album_artwork);
         }
     }
 
@@ -118,122 +76,128 @@ public class SongPage extends AppCompatActivity {
         handler.removeCallbacks(runnable);
     }
 
-    private void updateProgress() {
-        if (mLastPlaybackState == null) {
-            return;
-        }
-        long currentPosition = mLastPlaybackState.getPosition();
-        if (mLastPlaybackState.getState() == PlaybackStateCompat.STATE_PLAYING) {
-            // Calculate the elapsed time between the last position update and now and unless
-            // paused, we can assume (delta * speed) + current position is approximately the
-            // latest position. This ensure that we do not repeatedly call the getPlaybackState()
-            // on MediaControllerCompat.
-            long timeDelta = SystemClock.elapsedRealtime() -
-                    mLastPlaybackState.getLastPositionUpdateTime();
-            currentPosition += (int) timeDelta * mLastPlaybackState.getPlaybackSpeed();
-        }
-        seekBar.setProgress((int) currentPosition);
-    }
-
-    private void updateDuration(MediaMetadataCompat metadata) {
-        if (metadata == null) {
-            return;
-        }
-        int duration = (int) metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION);
-
-        seekBar.setMax(duration);
-        end.setText(DateUtils.formatElapsedTime(duration / 1000));
-    }
-
-    private void updatePlaybackState(PlaybackStateCompat state) {
-        if (state == null) {
-            return;
-        }
-        mLastPlaybackState = state;
-
-        play_pause.setImageDrawable(getDrawable(R.drawable.bigplay));
-
-        switch (state.getState()) {
-            case PlaybackStateCompat.STATE_PLAYING:
-                play_pause.setImageDrawable(getDrawable(R.drawable.bigpause));
-                scheduleSeekbarUpdate();
-                break;
-            case PlaybackStateCompat.STATE_PAUSED:
-                stopSeekbarUpdate();
-                break;
-            case PlaybackStateCompat.STATE_NONE:
-            case PlaybackStateCompat.STATE_STOPPED:
-                stopSeekbarUpdate();
-                break;
-            case PlaybackStateCompat.STATE_BUFFERING:
-                stopSeekbarUpdate();
-                break;
-        }
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.song_page);
+        SongPageBinding binding = SongPageBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
 
-        songName = findViewById(R.id.songName);
-        subtitle = findViewById(R.id.songArtist);
-        seekBar = findViewById(R.id.seekbar);
-        rewind = findViewById(R.id.rewind);
-        forward = findViewById(R.id.forward);
-        back_btn = findViewById(R.id.back_btn);
-        play_pause = findViewById(R.id.play_pause);
-        album_artwork = findViewById(R.id.album_artwork);
-        credits = findViewById(R.id.credits);
-        sclogo = findViewById(R.id.sclogo);
-        start = findViewById(R.id.start);
-        end = findViewById(R.id.end);
-        shuffle = findViewById(R.id.shuffle);
-        repeat = findViewById(R.id.repeat);
+        mediaControllerCallback = new MediaControllerCallback(this);
 
-        songName.setSelected(true);
+        playbackViewModel = new ViewModelProvider(this).get(PlaybackViewModel.class);
+        binding.songName.setSelected(true);
 
-        shuffle = findViewById(R.id.shuffle);
-        repeat = findViewById(R.id.repeat);
+        playbackViewModel.getRmode().observe(this, new Observer<MyUtil.REPEAT_MODE>() {
+            @Override
+            public void onChanged(MyUtil.REPEAT_MODE rmode) {
+                MediaControllerCompat.getMediaController(SongPage.this).getTransportControls()
+                        .setRepeatMode(rmode.getValue());
+                MyUtil.updateRepeatDrawable(rmode, binding.repeat, SongPage.this);
+            }
+        });
 
-        repeat.setOnClickListener(new View.OnClickListener() {
+        playbackViewModel.getEnabled().observe(this, new Observer<Boolean>() {
+            @Override
+            public void onChanged(Boolean aBoolean) {
+                MyUtil.updateShuffleDrawable(aBoolean, binding.shuffle, SongPage.this);
+            }
+        });
+
+        playbackViewModel.getMetaData().observe(this, new Observer<MediaMetadataCompat>() {
+            @Override
+            public void onChanged(MediaMetadataCompat mediaMetadataCompat) {
+                binding.songName.setText(mediaMetadataCompat.getDescription().getTitle());
+                binding.songArtist.setText(mediaMetadataCompat.getDescription().getSubtitle());
+                String url = mediaMetadataCompat.getString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI);
+                if (url != null) {
+                    Glide.with(SongPage.this).load(url).into(binding.albumArtwork);
+                }
+            }
+        });
+
+        playbackViewModel.getDuration().observe(this, new Observer<Integer>() {
+            @Override
+            public void onChanged(Integer duration) {
+                binding.seekbar.setMax(duration);
+                binding.end.setText(DateUtils.formatElapsedTime(duration / 1000));
+            }
+        });
+
+        playbackViewModel.getPosition().observe(this, new Observer<Long>() {
+            @Override
+            public void onChanged(Long aLong) {
+                binding.seekbar.setProgress(aLong.intValue());
+            }
+        });
+
+        playbackViewModel.getmLastPlaybackState().observe(this, new Observer<PlaybackStateCompat>() {
+            @Override
+            public void onChanged(PlaybackStateCompat playbackStateCompat) {
+                binding.playPause.setImageDrawable(getDrawable(R.drawable.bigplay));
+                if (playbackStateCompat.getState() == PlaybackStateCompat.STATE_PLAYING) {
+                    binding.playPause.setImageDrawable(getDrawable(R.drawable.bigpause));
+                }
+            }
+        });
+
+        playbackViewModel.getShouldRunSeekbar().observe(this, new Observer<Boolean>() {
+            @Override
+            public void onChanged(Boolean aBoolean) {
+                if (aBoolean) {
+                    scheduleSeekbarUpdate();
+                } else {
+                    stopSeekbarUpdate();
+                }
+            }
+        });
+
+        playbackViewModel.getShouldShowProgressbar().observe(this, new Observer<Boolean>() {
+            @Override
+            public void onChanged(Boolean aBoolean) {
+                if(aBoolean) {
+                    binding.progressBar.setVisibility(View.VISIBLE);
+                } else {
+                    binding.progressBar.setVisibility(View.GONE);
+                }
+            }
+        });
+
+        mediaControllerCallback.getIsSessionReady().observe(this, new Observer<Boolean>() {
+            @Override
+            public void onChanged(Boolean aBoolean) {
+                if (aBoolean) {
+                    MyUtil.updateRepeatDrawable(MyUtil.REPEAT_MODE.values()[mediaControllerCompat.getRepeatMode()], binding.repeat, SongPage.this);
+                    MyUtil.updateShuffleDrawable(mediaControllerCompat.getShuffleMode() == PlaybackStateCompat.SHUFFLE_MODE_ALL, binding.shuffle, SongPage.this);
+                }
+            }
+        });
+
+        mediaControllerCallback.getMetaData().observe(this, new Observer<MediaMetadataCompat>() {
+            @Override
+            public void onChanged(MediaMetadataCompat metadata) {
+                // null for now to avoid crash
+            }
+        });
+
+        binding.repeat.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 MediaControllerCompat controllerCompat = MediaControllerCompat.getMediaController(SongPage.this);
-                MediaControllerCompat.TransportControls controls = controllerCompat.getTransportControls();
-
-                MyUtil.REPEAT_MODE rmode = MyUtil.REPEAT_MODE.values()[controllerCompat.getRepeatMode()];
-
-                if (rmode.getValue() + 1 > 2) {
-                    rmode = MyUtil.REPEAT_MODE.NONE;
-                } else {
-                    rmode = MyUtil.REPEAT_MODE.values()[rmode.getValue() + 1];
-                }
-
-                controls.setRepeatMode(rmode.getValue());
-                MyUtil.updateRepeatDrawable(rmode, repeat, SongPage.this);
+                playbackViewModel.repeatHandler(controllerCompat.getRepeatMode());
 
             }
         });
 
-        shuffle.setOnClickListener(new View.OnClickListener() {
+        binding.shuffle.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                boolean enabled = false;
                 MediaControllerCompat controllerCompat = MediaControllerCompat.getMediaController(SongPage.this);
                 MediaControllerCompat.TransportControls controls = controllerCompat.getTransportControls();
-                if (controllerCompat.getShuffleMode() == PlaybackStateCompat.SHUFFLE_MODE_ALL) {
-                    controls.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_NONE);
-                } else {
-                    controls.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_ALL);
-                    enabled = true;
-                }
-
-                MyUtil.updateShuffleDrawable(enabled, shuffle, SongPage.this);
+                playbackViewModel.shuffleHandler(controls, controllerCompat);
             }
         });
 
-        sclogo.setOnClickListener(new View.OnClickListener() {
+        binding.sclogo.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent();
@@ -244,7 +208,7 @@ public class SongPage extends AppCompatActivity {
             }
         });
 
-        credits.setOnClickListener(new View.OnClickListener() {
+        binding.credits.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Dialog custoDialog = new Dialog(SongPage.this);
@@ -272,44 +236,44 @@ public class SongPage extends AppCompatActivity {
             }
         });
 
-        rewind.setOnClickListener(new View.OnClickListener() {
+        binding.rewind.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 MediaControllerCompat.getMediaController(SongPage.this).getTransportControls().skipToPrevious();
             }
         });
 
-        forward.setOnClickListener(new View.OnClickListener() {
+        binding.forward.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 MediaControllerCompat.getMediaController(SongPage.this).getTransportControls().skipToNext();
             }
         });
 
-        back_btn.setOnClickListener(new View.OnClickListener() {
+        binding.backBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 onBackPressed();
             }
         });
 
-        play_pause.setOnClickListener(new View.OnClickListener() {
+        binding.playPause.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 int pbState = MediaControllerCompat.getMediaController(SongPage.this).getPlaybackState().getState();
                 if (pbState == PlaybackStateCompat.STATE_PLAYING) {
-                    MediaControllerCompat.getMediaController(SongPage.this).getTransportControls().pause();
+                    playbackViewModel.pause(MediaControllerCompat.getMediaController(SongPage.this));
                 } else {
-                    MediaControllerCompat.getMediaController(SongPage.this).getTransportControls().play();
+                    playbackViewModel.play(MediaControllerCompat.getMediaController(SongPage.this));
                 }
             }
         });
 
         initSeekBarRunnable();
-        seekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+        binding.seekbar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(android.widget.SeekBar seekBar, int progress, boolean fromUser) {
-                start.setText(DateUtils.formatElapsedTime(progress / 1000));
+                binding.start.setText(DateUtils.formatElapsedTime(progress / 1000));
             }
 
             @Override
@@ -323,9 +287,8 @@ public class SongPage extends AppCompatActivity {
             }
         });
 
-        //initSeekBarRunnable();
         token = getIntent().getParcelableExtra("token");
-        mediaControllerCallback = new MediaControllerCallback();
+
         initializeCallback();
     }
 
